@@ -1,0 +1,47 @@
+services:
+  frontend:
+    build: frontend
+    depends_on:
+      - backend
+    tty: true
+    develop:
+      watch:
+        - action: sync
+          path: ./frontend
+          target: /frontend/
+        - action: rebuild
+          path: ./frontend/package.json
+    environment:
+      VITE_BACKEND_ORIGIN: "http://localhost:3001"
+      PORT: 3000
+    ports:
+      - "3000:3000"
+
+  backend:
+    build: backend
+    depends_on:
+      - database
+    tty: true
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./backend
+          target: /backend/
+        - action: rebuild
+          path: ./backend/package.json
+    ports:
+      - "3001:3001"
+    environment:
+      DOMAIN: "localhost"
+      PORT: 3001
+      FRONTEND_ORIGIN: "http://localhost:3000"
+      COOKIE_SECRET: "s3cr3t"
+      MONGO_URI: "mongodb://root:1234@database:27017"
+
+  database:
+    image: mongo:5.0
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: "root"
+      MONGO_INITDB_ROOT_PASSWORD: "1234"
