@@ -1,6 +1,7 @@
 {
   "name": "hiring",
   "version": "1.0.0",
+  "private": true,
   "scripts": {
     "archive": "git archive --format zip --output \"archive-$(git rev-parse --short HEAD).zip\" HEAD ."
   },
