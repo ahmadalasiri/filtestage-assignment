@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Avatar,
@@ -11,6 +11,7 @@ import {
   ListItemAvatar,
   ListItemButton,
   ListItemText,
+  ListItemIcon,
   Button,
   Dialog,
   DialogTitle,
@@ -20,71 +21,204 @@ import {
   TextField,
   Chip,
   IconButton,
+  FormControl,
+  FormHelperText,
+  InputLabel,
+  Select,
+  MenuItem,
+  Divider,
+  Menu,
+  Autocomplete,
+  Paper,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import FolderIcon from "@mui/icons-material/Folder";
+import FolderOpenIcon from "@mui/icons-material/FolderOpen";
+import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
+import AddIcon from "@mui/icons-material/Add";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
 import {
   useInviteReviewer,
   useProjects,
   useSelectedProject,
   useCreateProject,
 } from "../hooks/projects";
+import {
+  useCreateFolder,
+  useFolders,
+  useFolderHierarchy,
+  useUpdateFolder,
+  useDeleteFolder,
+} from "../hooks/folders";
 import { useFiles, useUploadFile } from "../hooks/files";
 import { useSession } from "../hooks/auth";
 import TopBar from "../components/TopBar";
 import UserAvatar from "../components/UserAvatar";
 import CopyFileLinkButton from "../components/CopyFileLinkButton";
 
-const Sidebar = () => {
-  const navigate = useNavigate();
-  const { data: projects } = useProjects();
-  const { data: selectedProject } = useSelectedProject();
+// Folder component with context menu
+const FolderItem = ({ folder, selectedProject, navigate, level = 0 }) => {
+  const [expanded, setExpanded] = useState(false);
+  const [menuAnchor, setMenuAnchor] = useState(null);
+  const [createProjectDialog, setCreateProjectDialog] = useState(false);
+  const [createSubfolderDialog, setCreateSubfolderDialog] = useState(false);
+  const [editFolderDialog, setEditFolderDialog] = useState(false);
+  const [newFolderName, setNewFolderName] = useState(folder.name);
+  
   const createProject = useCreateProject();
-  const {
-    data: { userId },
-  } = useSession();
-  const [dialogOpen, setDialogOpen] = useState(false);
-
-  const [myProjects, sharedWithMe] = projects.reduce(
-    (result, project) => {
-      if (project.authorId === userId) {
-        result[0].push(project);
-      } else {
-        result[1].push(project);
-      }
-      return result;
-    },
-    [[], []],
-  );
-
-  const handleDialogClose = () => {
-    setDialogOpen(false);
+  const createFolder = useCreateFolder();
+  const updateFolder = useUpdateFolder();
+  const deleteFolder = useDeleteFolder();
+  
+  const hasChildren = (folder.children && folder.children.length > 0) || 
+                     (folder.projects && folder.projects.length > 0);
+  const indent = level * 16;
+  
+  const handleMenuOpen = (e) => {
+    e.stopPropagation();
+    setMenuAnchor(e.currentTarget);
   };
-
-  const handleCreateProject = (e) => {
+  
+  const handleMenuClose = () => {
+    setMenuAnchor(null);
+  };
+  
+  const handleCreateProjectSubmit = (e) => {
     e.preventDefault();
     createProject.mutate(
-      { name: e.target.elements.name.value },
+      { 
+        name: e.target.elements.name.value,
+        folderId: folder._id
+      },
       {
         onSuccess: () => {
-          handleDialogClose();
+          setCreateProjectDialog(false);
+          setExpanded(true); // Expand to show the new project
         },
       },
     );
   };
-
+  
+  const handleCreateSubfolderSubmit = (e) => {
+    e.preventDefault();
+    createFolder.mutate(
+      { 
+        name: e.target.elements.name.value,
+        parentFolderId: folder._id
+      },
+      {
+        onSuccess: () => {
+          setCreateSubfolderDialog(false);
+          setExpanded(true); // Expand to show the new subfolder
+        },
+      },
+    );
+  };
+  
+  const handleEditFolderSubmit = (e) => {
+    e.preventDefault();
+    updateFolder.mutate(
+      { 
+        folderId: folder._id,
+        name: newFolderName
+      },
+      {
+        onSuccess: () => {
+          setEditFolderDialog(false);
+        },
+      },
+    );
+  };
+  
+  const handleDeleteFolder = () => {
+    deleteFolder.mutate(
+      { folderId: folder._id },
+      {
+        onSuccess: () => {
+          handleMenuClose();
+        },
+      },
+    );
+  };
+  
   return (
-    <Box sx={{ minWidth: 240, p: 2 }}>
-      <Button
-        fullWidth
-        onClick={() => {
-          setDialogOpen(true);
-        }}
+    <>
+      <ListItem 
+        disablePadding 
+        sx={{ display: 'block' }}
       >
-        Create Project
-      </Button>
-      <Dialog open={dialogOpen} onClose={handleDialogClose}>
-        <Box component="form" onSubmit={handleCreateProject}>
+        <ListItemButton
+          onClick={() => setExpanded(!expanded)}
+          sx={{ pl: `${indent}px` }}
+        >
+          <ListItemIcon>
+            {expanded ? <FolderOpenIcon color="primary" /> : <FolderIcon color="primary" />}
+          </ListItemIcon>
+          <ListItemText primary={folder.name} />
+          {hasChildren && (
+            <IconButton 
+              edge="end" 
+              onClick={(e) => {
+                e.stopPropagation();
+                setExpanded(!expanded);
+              }}
+              size="small"
+            >
+              {expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+            </IconButton>
+          )}
+          <IconButton
+            edge="end"
+            onClick={handleMenuOpen}
+            size="small"
+          >
+            <MoreVertIcon />
+          </IconButton>
+        </ListItemButton>
+      </ListItem>
+      
+      {/* Folder context menu */}
+      <Menu
+        anchorEl={menuAnchor}
+        open={Boolean(menuAnchor)}
+        onClose={handleMenuClose}
+      >
+        <MenuItem onClick={() => {
+          handleMenuClose();
+          setCreateProjectDialog(true);
+        }}>
+          <ListItemIcon>
+            <AddIcon fontSize="small" />
+          </ListItemIcon>
+          Create project
+        </MenuItem>
+        <MenuItem onClick={() => {
+          handleMenuClose();
+          setCreateSubfolderDialog(true);
+        }}>
+          <ListItemIcon>
+            <CreateNewFolderIcon fontSize="small" />
+          </ListItemIcon>
+          Create subfolder
+        </MenuItem>
+        <Divider />
+        <MenuItem onClick={() => {
+          handleMenuClose();
+          setEditFolderDialog(true);
+        }}>
+          <ListItemIcon>
+            <EditIcon fontSize="small" />
+          </ListItemIcon>
+          Edit folder name
+        </MenuItem>
+      </Menu>
+      
+      {/* Create Project Dialog */}
+      <Dialog open={createProjectDialog} onClose={() => setCreateProjectDialog(false)}>
+        <Box component="form" onSubmit={handleCreateProjectSubmit}>
           <DialogTitle>Create New Project</DialogTitle>
           <DialogContent>
             <DialogContentText>
@@ -100,11 +234,12 @@ const Sidebar = () => {
               variant="standard"
               required
             />
+            <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+              Project will be created in folder: {folder.name}
+            </Typography>
           </DialogContent>
           <DialogActions>
-            <Button color="main" onClick={handleDialogClose}>
-              Cancel
-            </Button>
+            <Button onClick={() => setCreateProjectDialog(false)}>Cancel</Button>
             <Button
               variant="contained"
               type="submit"
@@ -115,19 +250,192 @@ const Sidebar = () => {
           </DialogActions>
         </Box>
       </Dialog>
-      {myProjects.length > 0 && (
-        <List subheader={<ListSubheader>My Projects</ListSubheader>}>
-          {myProjects.map((project) => (
-            <ListItemButton
-              selected={project._id === selectedProject?._id}
-              key={project._id}
-              onClick={() => navigate(`/projects/${project._id}`)}
+      
+      {/* Create Subfolder Dialog */}
+      <Dialog open={createSubfolderDialog} onClose={() => setCreateSubfolderDialog(false)}>
+        <Box component="form" onSubmit={handleCreateSubfolderSubmit}>
+          <DialogTitle>Create New Subfolder</DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              Please enter the subfolder name:
+            </DialogContentText>
+            <TextField
+              autoFocus
+              name="name"
+              margin="dense"
+              label="Folder Name"
+              type="text"
+              fullWidth
+              variant="standard"
+              required
+            />
+            <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+              Subfolder will be created in: {folder.name}
+            </Typography>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setCreateSubfolderDialog(false)}>Cancel</Button>
+            <Button
+              variant="contained"
+              type="submit"
+              disabled={createFolder.isLoading}
             >
-              <ListItemText primary={project.name} />
-            </ListItemButton>
+              {createFolder.isLoading ? "Creating..." : "Create"}
+            </Button>
+          </DialogActions>
+        </Box>
+      </Dialog>
+      
+      {/* Edit Folder Dialog */}
+      <Dialog open={editFolderDialog} onClose={() => setEditFolderDialog(false)}>
+        <Box component="form" onSubmit={handleEditFolderSubmit}>
+          <DialogTitle>Edit Folder Name</DialogTitle>
+          <DialogContent>
+            <TextField
+              autoFocus
+              margin="dense"
+              label="Folder Name"
+              type="text"
+              fullWidth
+              variant="standard"
+              value={newFolderName}
+              onChange={(e) => setNewFolderName(e.target.value)}
+              required
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setEditFolderDialog(false)}>Cancel</Button>
+            <Button
+              variant="contained"
+              type="submit"
+              disabled={updateFolder.isLoading}
+            >
+              {updateFolder.isLoading ? "Saving..." : "Save"}
+            </Button>
+          </DialogActions>
+        </Box>
+      </Dialog>
+      
+      {/* Render children if expanded */}
+      {expanded && hasChildren && (
+        <List disablePadding>
+          {folder.children && folder.children.map(childFolder => (
+            <FolderItem 
+              key={childFolder._id}
+              folder={childFolder}
+              selectedProject={selectedProject}
+              navigate={navigate}
+              level={level + 1}
+            />
+          ))}
+          {folder.projects && folder.projects.map(project => (
+            <ListItem 
+              key={project._id}
+              disablePadding
+            >
+              <ListItemButton
+                selected={project._id === selectedProject?._id}
+                onClick={() => navigate(`/projects/${project._id}`)}
+                sx={{ pl: `${indent + 16}px` }}
+              >
+                <ListItemText primary={project.name} />
+              </ListItemButton>
+            </ListItem>
           ))}
         </List>
       )}
+    </>
+  );
+};
+
+const Sidebar = () => {
+  const navigate = useNavigate();
+  const { data: projects = [] } = useProjects();
+  const { data: selectedProject } = useSelectedProject();
+  const { data: folders = [] } = useFolderHierarchy();
+  const createFolder = useCreateFolder();
+  const {
+    data: { userId },
+  } = useSession();
+  
+  const [rootFolderDialogOpen, setRootFolderDialogOpen] = useState(false);
+  
+  // Get projects shared with the user (not in folders)
+  const sharedWithMe = projects.filter(project => 
+    project.authorId !== userId && project.reviewers.includes(userId)
+  );
+
+  const handleCreateRootFolder = (e) => {
+    e.preventDefault();
+    createFolder.mutate(
+      { 
+        name: e.target.elements.name.value,
+        parentFolderId: null 
+      },
+      {
+        onSuccess: () => {
+          setRootFolderDialogOpen(false);
+        },
+      },
+    );
+  };
+
+  return (
+    <Box sx={{ minWidth: 240, p: 2 }}>
+      <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2 }}>
+        <Button
+          variant="outlined"
+          startIcon={<CreateNewFolderIcon />}
+          onClick={() => setRootFolderDialogOpen(true)}
+          size="small"
+        >
+          New Folder
+        </Button>
+      </Box>
+      
+      {/* Create Root Folder Dialog */}
+      <Dialog open={rootFolderDialogOpen} onClose={() => setRootFolderDialogOpen(false)}>
+        <Box component="form" onSubmit={handleCreateRootFolder}>
+          <DialogTitle>Create New Folder</DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              Please enter the folder name:
+            </DialogContentText>
+            <TextField
+              autoFocus
+              name="name"
+              margin="dense"
+              label="Folder Name"
+              type="text"
+              fullWidth
+              variant="standard"
+              required
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setRootFolderDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="contained"
+              type="submit"
+              disabled={createFolder.isLoading}
+            >
+              {createFolder.isLoading ? "Creating..." : "Create"}
+            </Button>
+          </DialogActions>
+        </Box>
+      </Dialog>
+      <List>
+        {folders.map((folder) => (
+          <FolderItem 
+            key={folder._id}
+            folder={folder}
+            selectedProject={selectedProject}
+            navigate={navigate}
+          />
+        ))}
+      </List>
       {sharedWithMe.length > 0 && (
         <List subheader={<ListSubheader>Shared with me</ListSubheader>}>
           {sharedWithMe.map((project) => (

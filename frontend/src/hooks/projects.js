@@ -16,11 +16,11 @@ export function useCreateProject() {
   const navigate = useNavigate();
 
   return useMutation({
-    mutationFn: ({ name }) =>
+    mutationFn: ({ name, folderId }) =>
       backendFetch("/projects", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name }),
+        body: JSON.stringify({ name, folderId }),
       }),
     onSuccess: (project) => {
       queryClient.setQueryData(["projects"], (data) => [...data, project]);

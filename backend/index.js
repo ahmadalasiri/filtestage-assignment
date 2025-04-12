@@ -11,6 +11,7 @@ import UserRoutes from "./src/routes/user.js";
 import ProjectRoutes from "./src/routes/projects.js";
 import FileRoutes from "./src/routes/files.js";
 import CommentRoutes from "./src/routes/comments.js";
+import FolderRoutes from "./src/routes/folders.js";
 import { errorHandler } from "./src/errors.js";
 
 dotenv.config();
@@ -34,6 +35,7 @@ async function main() {
   app.use("/auth", AuthRoutes({ db, session }));
   app.use("/users", UserRoutes({ db, session }));
   app.use("/projects", ProjectRoutes({ db, session }));
+  app.use("/folders", FolderRoutes({ db, session }));
   app.use("/files", FileRoutes({ db, session }));
   app.use("/comments", CommentRoutes({ db, session }));
 

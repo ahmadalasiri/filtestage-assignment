@@ -2,6 +2,7 @@ import { z } from "zod";
 import express from "express";
 import { UnauthorizedError, NotFoundError, ForbiddenError } from "../errors.js";
 import { StringObjectId } from "../schemas.js";
+import { ObjectId } from "mongodb";
 
 export default function ProjectRoutes({ db, session }) {
   const router = express.Router();
@@ -12,13 +13,26 @@ export default function ProjectRoutes({ db, session }) {
       throw new UnauthorizedError();
     }
 
-    const { name } = z.object({ name: z.string() }).parse(req.body);
+    const { name, folderId } = z.object({ 
+      name: z.string(),
+      folderId: z.string()
+    }).parse(req.body);
+
+    // Verify folder exists
+    const folder = await db.collection("folders").findOne({
+      _id: new ObjectId(folderId)
+    });
+
+    if (!folder) {
+      throw new NotFoundError("Folder not found");
+    }
 
     const { insertedId } = await db.collection("projects").insertOne({
       authorId: userId,
       name,
       reviewers: [],
       createdAt: new Date(),
+      folderId: new ObjectId(folderId)
     });
 
     res
