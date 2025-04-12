@@ -17,6 +17,7 @@ import {
   IconButton,
   Menu,
   MenuItem,
+  Link,
 } from "@mui/material";
 import ReplyIcon from "@mui/icons-material/Reply";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -33,6 +34,7 @@ import { useUser } from "../hooks/users";
 import { useSession } from "../hooks/auth";
 import UserAvatar from "../components/UserAvatar";
 import Loading from "../pages/Loading";
+import { linkifyText } from "../utils/linkify";
 
 // Reply form component
 const ReplyForm = ({ fileId, parentId, onCancel }) => {
@@ -164,6 +166,9 @@ const CommentContent = ({ comment, isParent }) => {
   
   if (isLoading) return null;
   
+  // Process the comment body to linkify URLs
+  const processedContent = linkifyText(comment.body);
+  
   return (
     <Box sx={{
       p: 2,
@@ -178,7 +183,30 @@ const CommentContent = ({ comment, isParent }) => {
           </Typography>
         </Box>
       </Box>
-      <Typography variant="body1">{comment.body}</Typography>
+      <Typography variant="body1">
+        {Array.isArray(processedContent) ? (
+          processedContent.map((part, index) => {
+            if (typeof part === 'string') {
+              return <span key={index}>{part}</span>;
+            } else if (part.type === 'link') {
+              return (
+                <Link 
+                  key={part.key} 
+                  href={part.href} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  sx={{ wordBreak: 'break-word' }}
+                >
+                  {part.text}
+                </Link>
+              );
+            }
+            return null;
+          })
+        ) : (
+          processedContent
+        )}
+      </Typography>
     </Box>
   );
 };
