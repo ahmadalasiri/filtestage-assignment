@@ -18,14 +18,35 @@ export function useSelectedFile() {
   });
 }
 
+export function useUpdateDeadline() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ fileId, deadline }) => {
+      return backendFetch(`/files/${fileId}/deadline`, {
+        method: "PATCH",
+        body: JSON.stringify({ deadline: deadline ? deadline.toISOString() : null }),
+        headers: { "Content-Type": "application/json" },
+      });
+    },
+    onSuccess: (file) => {
+      queryClient.setQueryData(["files", file._id], file);
+      queryClient.invalidateQueries(["files", file.projectId]);
+    },
+  });
+}
+
 export function useUploadFile() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ projectId, file }) => {
+    mutationFn: ({ projectId, file, deadline }) => {
       const formData = new FormData();
       formData.append("projectId", projectId);
       formData.append("file", file);
+      if (deadline) {
+        formData.append("deadline", deadline.toISOString());
+      }
       return backendFetch("/files", {
         method: "POST",
         body: formData,

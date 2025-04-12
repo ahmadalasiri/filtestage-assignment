@@ -144,6 +144,8 @@ const Sidebar = () => {
 const UploadFileButton = ({ projectId }) => {
   const [open, setOpen] = useState(false);
   const [file, setFile] = useState(null);
+  const [deadlineDate, setDeadlineDate] = useState("");
+  const [deadlineTime, setDeadlineTime] = useState("12:00"); // Default to noon
 
   const uploadFile = useUploadFile();
 
@@ -155,16 +157,33 @@ const UploadFileButton = ({ projectId }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    // Combine date and time for the deadline
+    let combinedDeadline = null;
+    if (deadlineDate) {
+      combinedDeadline = new Date(`${deadlineDate}T${deadlineTime}:00`);
+    }
+    
     uploadFile.mutate(
-      { projectId, file },
+      { 
+        projectId, 
+        file, 
+        deadline: combinedDeadline
+      },
       {
         onSuccess: () => {
           setOpen(false);
           setFile(null);
+          setDeadlineDate("");
+          setDeadlineTime("12:00");
         },
       },
     );
   };
+
+  // Calculate minimum date (today) for the deadline picker
+  const today = new Date();
+  const minDate = today.toISOString().split('T')[0];
 
   return (
     <Box>
@@ -178,6 +197,7 @@ const UploadFileButton = ({ projectId }) => {
               fullWidth
               variant={!file ? "contained" : "text"}
               component="label"
+              sx={{ mb: 2 }}
             >
               Select File
               <input
@@ -189,9 +209,34 @@ const UploadFileButton = ({ projectId }) => {
               />
             </Button>
             {file && (
-              <Typography variant="body2">
+              <Typography variant="body2" sx={{ mb: 2 }}>
                 Selected file: {file.name}
               </Typography>
+            )}
+            
+            <TextField
+              label="Review Deadline Date (Optional)"
+              type="date"
+              fullWidth
+              value={deadlineDate}
+              onChange={(e) => setDeadlineDate(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+              inputProps={{ min: minDate }}
+              helperText="Set a date for the review deadline"
+              sx={{ mb: 2 }}
+            />
+            
+            {deadlineDate && (
+              <TextField
+                label="Review Deadline Time"
+                type="time"
+                fullWidth
+                value={deadlineTime}
+                onChange={(e) => setDeadlineTime(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                helperText="Set a time for the review deadline"
+                sx={{ mb: 2 }}
+              />
             )}
 
             {uploadFile.isError && (
@@ -281,6 +326,76 @@ const InviteReviewerButton = ({ projectId }) => {
   );
 };
 
+// Helper function to format deadline display
+const formatDeadline = (deadline) => {
+  if (!deadline) return null;
+  
+  const deadlineDate = new Date(deadline);
+  const now = new Date();
+  const isPast = deadlineDate < now;
+  
+  // Format with both date and time
+  const dateOptions = { year: 'numeric', month: 'short', day: 'numeric' };
+  const timeOptions = { hour: '2-digit', minute: '2-digit' };
+  
+  // Format the date and time
+  const formattedDateTime = `${deadlineDate.toLocaleDateString(undefined, dateOptions)} at ${deadlineDate.toLocaleTimeString(undefined, timeOptions)}`;
+  
+  return {
+    text: formattedDateTime,
+    isPast
+  };
+};
+
+// Status badge removed
+
+// File item component with deadline display
+const FileItem = ({ file, userId, navigate }) => {
+  const deadlineInfo = formatDeadline(file.deadline);
+  const isOwner = file.authorId === userId;
+  
+  return (
+    <ListItem
+      key={file._id}
+      secondaryAction={<CopyFileLinkButton fileId={file._id} />}
+    >
+      <ListItemButton onClick={() => navigate(`/files/${file._id}`)}>
+        <ListItemAvatar>
+          <Avatar
+            variant="square"
+            alt={file.name}
+            src={`${import.meta.env.VITE_BACKEND_ORIGIN}/files/${file._id}/content`}
+            sx={{ width: 56, height: 56, mr: 2 }}
+          />
+        </ListItemAvatar>
+        <Box sx={{ display: "flex", flexDirection: "column", width: "100%" }}>
+          <Typography
+            variant="body1"
+            sx={{
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+              maxWidth: "300px",
+            }}
+          >
+            {file.name}
+          </Typography>
+          {deadlineInfo && (
+            <Typography 
+              variant="caption" 
+              color={deadlineInfo.isPast ? "error" : "text.secondary"}
+              sx={{ display: "flex", alignItems: "center", mt: 0.5 }}
+            >
+              Deadline: {deadlineInfo.text}
+              {deadlineInfo.isPast && " (Overdue)"}
+            </Typography>
+          )}
+        </Box>
+      </ListItemButton>
+    </ListItem>
+  );
+};
+
 const Project = ({ project }) => {
   const navigate = useNavigate();
   const { data: files } = useFiles(project._id);
@@ -312,34 +427,12 @@ const Project = ({ project }) => {
       {files.length === 0 && <Typography variant="h6">No files yet</Typography>}
       <List sx={{ width: "600px" }}>
         {files.map((file) => (
-          <ListItem
-            key={file._id}
-            secondaryAction={<CopyFileLinkButton fileId={file._id} />}
-          >
-            <ListItemButton onClick={() => navigate(`/files/${file._id}`)}>
-              <ListItemAvatar>
-                <Avatar
-                  variant="square"
-                  alt={file.name}
-                  src={`${import.meta.env.VITE_BACKEND_ORIGIN}/files/${file._id}/content`}
-                  sx={{ width: 56, height: 56, mr: 2 }}
-                />
-              </ListItemAvatar>
-              <ListItemText
-                primary={file.name}
-                sx={{ maxWidth: "30em" }}
-                slotProps={{
-                  primary: {
-                    sx: {
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    },
-                  },
-                }}
-              />
-            </ListItemButton>
-          </ListItem>
+          <FileItem 
+            key={file._id} 
+            file={file} 
+            userId={userId} 
+            navigate={navigate} 
+          />
         ))}
       </List>
     </Box>

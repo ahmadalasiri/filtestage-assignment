@@ -13,15 +13,22 @@ import {
   CardHeader,
   CardContent,
   Typography,
+  Chip,
+  IconButton,
+  Menu,
+  MenuItem,
 } from "@mui/material";
 import ReplyIcon from "@mui/icons-material/Reply";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
-import { useSelectedFile } from "../hooks/files";
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
+import { useSelectedFile, useUpdateDeadline } from "../hooks/files";
 import { useTheme } from "@mui/material/styles";
 import { useComments, useCreateComment } from "../hooks/comments";
 import { useSearchParams } from "react-router-dom";
 import { useUser } from "../hooks/users";
+import { useSession } from "../hooks/auth";
 import UserAvatar from "../components/UserAvatar";
 import Loading from "../pages/Loading";
 
@@ -377,6 +384,205 @@ const ImageViewer = ({ file }) => {
   );
 };
 
+// Deadline management dialog component
+const DeadlineDialog = ({ file, onClose, open }) => {
+  // Initialize with existing deadline or current date/time + 1 day
+  const initialDate = file.deadline ? new Date(file.deadline) : new Date(Date.now() + 24 * 60 * 60 * 1000);
+  
+  const [deadlineDate, setDeadlineDate] = useState(
+    initialDate.toISOString().split('T')[0]
+  );
+  const [deadlineTime, setDeadlineTime] = useState(
+    initialDate.toTimeString().slice(0, 5) // Format: HH:MM
+  );
+  
+  const updateDeadline = useUpdateDeadline();
+  
+  // Calculate minimum date (today) for the deadline picker
+  const today = new Date();
+  const minDate = today.toISOString().split('T')[0];
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    
+    // Combine date and time
+    const combinedDeadline = deadlineDate && deadlineTime ? 
+      new Date(`${deadlineDate}T${deadlineTime}:00`) : null;
+    
+    updateDeadline.mutate(
+      { 
+        fileId: file._id, 
+        deadline: combinedDeadline
+      },
+      {
+        onSuccess: () => {
+          onClose();
+        },
+      }
+    );
+  };
+
+  const handleRemoveDeadline = () => {
+    updateDeadline.mutate(
+      { 
+        fileId: file._id, 
+        deadline: null 
+      },
+      {
+        onSuccess: () => {
+          onClose();
+        },
+      }
+    );
+  };
+
+  return (
+    <Dialog open={open} onClose={onClose}>
+      <DialogTitle>Set Review Deadline</DialogTitle>
+      <Box component="form" onSubmit={handleSubmit}>
+        <DialogContent>
+          <TextField
+            label="Deadline Date"
+            type="date"
+            fullWidth
+            value={deadlineDate}
+            onChange={(e) => setDeadlineDate(e.target.value)}
+            InputLabelProps={{ shrink: true }}
+            inputProps={{ min: minDate }}
+            helperText="Set the date for the review deadline"
+            sx={{ mb: 2 }}
+          />
+          <TextField
+            label="Deadline Time"
+            type="time"
+            fullWidth
+            value={deadlineTime}
+            onChange={(e) => setDeadlineTime(e.target.value)}
+            InputLabelProps={{ shrink: true }}
+            helperText="Set the time for the review deadline"
+            sx={{ mb: 2 }}
+          />
+          {file.deadline && (
+            <Button 
+              onClick={handleRemoveDeadline}
+              color="error"
+              sx={{ mt: 1 }}
+            >
+              Remove Deadline
+            </Button>
+          )}
+          {updateDeadline.isError && (
+            <Typography color="error">{updateDeadline.error.message}</Typography>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button 
+            type="submit" 
+            variant="contained"
+            disabled={updateDeadline.isPending}
+          >
+            {updateDeadline.isPending ? "Saving..." : "Save"}
+          </Button>
+        </DialogActions>
+      </Box>
+    </Dialog>
+  );
+};
+
+// File header component with deadline information
+const FileHeader = ({ file }) => {
+  const theme = useTheme();
+  const { data: { userId } } = useSession();
+  const isOwner = file.authorId === userId;
+  
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [showDeadlineDialog, setShowDeadlineDialog] = useState(false);
+  
+  const handleMenuOpen = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+  
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+  };
+  
+  const handleSetDeadline = () => {
+    handleMenuClose();
+    setShowDeadlineDialog(true);
+  };
+  
+  // Format deadline for display
+  const formatDeadline = () => {
+    if (!file.deadline) return null;
+    
+    const deadlineDate = new Date(file.deadline);
+    const now = new Date();
+    const isPast = deadlineDate < now;
+    
+    // Format with both date and time
+    const dateOptions = { year: 'numeric', month: 'short', day: 'numeric' };
+    const timeOptions = { hour: '2-digit', minute: '2-digit' };
+    
+    return {
+      text: `${deadlineDate.toLocaleDateString(undefined, dateOptions)} at ${deadlineDate.toLocaleTimeString(undefined, timeOptions)}`,
+      isPast
+    };
+  };
+  
+  const deadlineInfo = formatDeadline();
+  
+  return (
+    <Box sx={{ 
+      display: "flex", 
+      alignItems: "center", 
+      justifyContent: "space-between",
+      px: 2,
+      py: 1,
+      borderBottom: 1,
+      borderColor: "divider",
+      bgcolor: "background.paper"
+    }}>
+      <Box sx={{ display: "flex", alignItems: "center" }}>
+        <Typography variant="h6" sx={{ mr: 2 }}>{file.name}</Typography>
+        
+        {deadlineInfo && (
+          <Chip 
+            icon={<AccessTimeIcon />} 
+            label={`Deadline: ${deadlineInfo.text}`} 
+            color={deadlineInfo.isPast ? "error" : "default"} 
+            size="small" 
+            sx={{ mr: 1 }}
+          />
+        )}
+      </Box>
+      
+      {isOwner && (
+        <Box>
+          <IconButton onClick={handleMenuOpen}>
+            <MoreVertIcon />
+          </IconButton>
+          <Menu
+            anchorEl={anchorEl}
+            open={Boolean(anchorEl)}
+            onClose={handleMenuClose}
+          >
+            <MenuItem onClick={handleSetDeadline}>
+              {file.deadline ? "Update Deadline" : "Set Deadline"}
+            </MenuItem>
+          </Menu>
+          
+          <DeadlineDialog 
+            file={file} 
+            open={showDeadlineDialog} 
+            onClose={() => setShowDeadlineDialog(false)} 
+          />
+        </Box>
+      )}
+    </Box>
+  );
+};
+
 const File = () => {
   const { data: file, isLoading, isError } = useSelectedFile();
   const theme = useTheme();
@@ -385,24 +591,22 @@ const File = () => {
     return <Loading />;
   }
 
-  if (isError) {
-    return <Typography variant="h4">File not found</Typography>;
-  }
-
   return (
     <Box
       sx={{
+        height: "100vh",
         display: "flex",
         flexDirection: "column",
-        height: "100vh",
       }}
     >
       <TopBar title={file.name} back={`/projects/${file.projectId}`} />
+      <FileHeader file={file} />
       <Box
         sx={{
-          height: "100%",
+          flex: 1,
           display: "flex",
           backgroundColor: theme.palette.grey[200],
+          overflow: "hidden",
         }}
       >
         <ImageViewer file={file} />

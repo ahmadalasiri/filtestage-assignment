@@ -39,12 +39,21 @@ export default function FileRoutes({ db, session }) {
       throw new ForbiddenError();
     }
 
+    let deadline = null;
+    if (req.body.deadline) {
+      deadline = new Date(req.body.deadline);
+      if (isNaN(deadline) || deadline <= new Date()) {
+        throw new ValidationError("Deadline must be a valid future date and time");
+      }
+    }
+
     const { insertedId } = await db.collection("files").insertOne({
       projectId: project._id,
       authorId: userId,
       name: req.file.originalname,
       path: req.file.path,
       createdAt: new Date(),
+      deadline: deadline,
     });
 
     res
@@ -132,6 +141,44 @@ export default function FileRoutes({ db, session }) {
     }
 
     res.sendFile(path.join(process.cwd(), file.path));
+  });
+
+  // Add endpoint to update file deadline
+  router.patch("/:id/deadline", async (req, res) => {
+    const { userId } = await session.get(req);
+    if (!userId) {
+      throw new UnauthorizedError();
+    }
+
+    const fileId = new ObjectId(req.params.id);
+    const file = await db.collection("files").findOne({ _id: fileId });
+    if (!file) {
+      throw new NotFoundError("File not found");
+    }
+
+    if (!file.authorId.equals(userId)) {
+      throw new ForbiddenError("Only the file owner can update the deadline");
+    }
+
+    let deadline = null;
+    if (req.body.deadline) {
+      deadline = new Date(req.body.deadline);
+      if (isNaN(deadline)) {
+        throw new ValidationError("Invalid date and time format");
+      }
+    }
+
+    await db.collection("files").updateOne(
+      { _id: fileId },
+      {
+        $set: {
+          deadline: deadline
+        }
+      }
+    );
+
+    const updatedFile = await db.collection("files").findOne({ _id: fileId });
+    res.json(updatedFile);
   });
 
   return router;
