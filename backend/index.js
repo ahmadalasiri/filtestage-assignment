@@ -12,6 +12,7 @@ import ProjectRoutes from "./src/routes/projects.js";
 import FileRoutes from "./src/routes/files.js";
 import CommentRoutes from "./src/routes/comments.js";
 import FolderRoutes from "./src/routes/folders.js";
+import SearchRoutes from "./src/routes/search.js";
 import { errorHandler } from "./src/errors.js";
 
 dotenv.config();
@@ -38,6 +39,7 @@ async function main() {
   app.use("/folders", FolderRoutes({ db, session }));
   app.use("/files", FileRoutes({ db, session }));
   app.use("/comments", CommentRoutes({ db, session }));
+  app.use("/search", SearchRoutes({ db, session }));
 
   app.use(errorHandler);
 

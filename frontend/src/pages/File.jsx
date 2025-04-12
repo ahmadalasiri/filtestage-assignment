@@ -109,7 +109,7 @@ const CommentThread = ({ commentGroup, fileId }) => {
   const hasReplies = replies.length > 0;
 
   return (
-    <Box sx={{ mb: 2 }}>
+    <Box sx={{ mb: 2 }} id={`comment-${parentComment._id}`}>
       <Card variant="outlined">
         {/* Parent Comment */}
         <CommentContent comment={parentComment} isParent={true} />
@@ -214,6 +214,8 @@ const CommentContent = ({ comment, isParent }) => {
 const CommentBar = ({ fileId }) => {
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage } = useComments({ fileId });
   const commentContainerRef = useRef(null);
+  const [searchParams] = useSearchParams();
+  const commentId = searchParams.get('commentId');
 
   // Handle infinite scrolling
   useEffect(() => {
@@ -234,6 +236,30 @@ const CommentBar = ({ fileId }) => {
       return () => container.removeEventListener('scroll', handleScroll);
     }
   }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
+
+  // Effect to scroll to the comment when commentId is present in URL
+  useEffect(() => {
+    if (commentId && data) {
+      // Find the comment in all pages
+      const allComments = data.pages.flatMap(page => page.comments.flat());
+      const targetComment = allComments.find(comment => comment._id === commentId);
+      
+      if (targetComment) {
+        // Find the comment element and scroll to it
+        setTimeout(() => {
+          const commentElement = document.getElementById(`comment-${commentId}`);
+          if (commentElement) {
+            commentElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            commentElement.style.backgroundColor = '#f0f7ff';
+            setTimeout(() => {
+              commentElement.style.transition = 'background-color 1s';
+              commentElement.style.backgroundColor = '';
+            }, 1500);
+          }
+        }, 300);
+      }
+    }
+  }, [commentId, data]);
 
   // Extract all comment groups from all pages
   const commentGroups = data?.pages.flatMap(page => page.comments) || [];
@@ -721,6 +747,7 @@ const FileHeader = ({ file }) => {
 const File = () => {
   const { data: file, isLoading } = useSelectedFile();
   const theme = useTheme();
+  const [searchParams] = useSearchParams();
 
   if (isLoading) {
     return <Loading />;
