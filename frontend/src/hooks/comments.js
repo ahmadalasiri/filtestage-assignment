@@ -1,29 +1,45 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
 import { backendFetch } from "../backend";
 
-export function useComments({ fileId }) {
-  return useQuery({
+// Get all comments for a file with pagination
+export function useComments({ fileId, limit = 10 }) {
+  return useInfiniteQuery({
     queryKey: ["comments", fileId],
-    queryFn: () => backendFetch(`/comments?fileId=${fileId}`),
-    initialData: [],
+    queryFn: ({ pageParam = 1 }) => 
+      backendFetch(`/comments?fileId=${fileId}&page=${pageParam}&limit=${limit}`),
+    initialData: { pages: [{ comments: [], pagination: { total: 0, page: 1, limit, totalPages: 0 } }], pageParams: [1] },
+    getNextPageParam: (lastPage) => {
+      const { pagination } = lastPage;
+      return pagination.page < pagination.totalPages ? pagination.page + 1 : undefined;
+    },
   });
 }
 
+// Get a specific comment thread by its parent ID
+export function useCommentThread({ commentId, fileId }) {
+  return useQuery({
+    queryKey: ["commentThread", commentId],
+    queryFn: () => backendFetch(`/comments?fileId=${fileId}&threadId=${commentId}`),
+    enabled: !!commentId && !!fileId,
+  });
+}
+
+// Create a new comment or reply
 export function useCreateComment({ fileId }) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ body, x, y }) =>
+    mutationFn: ({ body, x, y, parentId }) =>
       backendFetch("/comments", {
         method: "POST",
-        body: JSON.stringify({ fileId, body, x, y }),
+        body: JSON.stringify({ fileId, body, x, y, parentId }),
         headers: { "Content-Type": "application/json" },
       }),
-    onSuccess: (comment) => {
-      queryClient.setQueryData(["comments", fileId], (data) => [
-        ...data,
-        comment,
-      ]);
+    onSuccess: () => {
+      // Invalidate all comment queries to refresh the data
+      queryClient.invalidateQueries({
+        queryKey: ["comments", fileId],
+      });
     },
   });
 }
