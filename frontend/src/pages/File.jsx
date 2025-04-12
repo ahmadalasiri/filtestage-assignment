@@ -18,7 +18,10 @@ import {
   Menu,
   MenuItem,
   Link,
+  Tabs,
+  Tab,
 } from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
 import ReplyIcon from "@mui/icons-material/Reply";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
@@ -26,6 +29,8 @@ import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import UploadIcon from "@mui/icons-material/Upload";
 import VersionsIcon from "@mui/icons-material/Collections";
+import BrushIcon from "@mui/icons-material/Brush";
+import ChatIcon from "@mui/icons-material/Chat";
 import { useSelectedFile, useUpdateDeadline, useUploadFileVersion } from "../hooks/files";
 import { useTheme } from "@mui/material/styles";
 import { useComments, useCreateComment } from "../hooks/comments";
@@ -39,6 +44,7 @@ import { useMentions } from '../hooks/mentions';
 import MentionSuggestions from "../components/MentionSuggestions";
 import MentionHighlighter from "../components/MentionHighlighter";
 import MentionInput from "../components/MentionInput";
+import AnnotationCanvas from "../components/AnnotationCanvas";
 
 // Reply form component
 const ReplyForm = ({ fileId, parentId, onCancel }) => {
@@ -201,6 +207,7 @@ const CommentThread = ({ commentGroup, fileId }) => {
 // Individual comment content component
 const CommentContent = ({ comment, isParent }) => {
   const { isLoading, data: author } = useUser(comment.authorId);
+  const [showAnnotation, setShowAnnotation] = useState(false);
   
   if (isLoading) return null;
   
@@ -214,13 +221,62 @@ const CommentContent = ({ comment, isParent }) => {
     }}>
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
         <UserAvatar userId={author._id} />
-        <Box sx={{ ml: 1 }}>
+        <Box sx={{ ml: 1, flexGrow: 1 }}>
           <Typography variant="subtitle2">{author.email}</Typography>
           <Typography variant="caption" color="text.secondary">
             {new Date(comment.createdAt).toLocaleString()}
           </Typography>
         </Box>
+        
+        {/* Show annotation button if the comment has an annotation */}
+        {comment.annotation && (
+          <Tooltip title={showAnnotation ? "Hide annotation" : "Show annotation"}>
+            <IconButton 
+              size="small" 
+              color={showAnnotation ? "secondary" : "default"}
+              onClick={() => setShowAnnotation(!showAnnotation)}
+            >
+              <BrushIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        )}
       </Box>
+      
+      {/* Display annotation if available and showAnnotation is true */}
+      {comment.annotation && showAnnotation && (
+        <Box sx={{ 
+          mb: 2, 
+          mt: 1, 
+          border: '1px solid', 
+          borderColor: 'divider', 
+          borderRadius: 1, 
+          overflow: 'hidden',
+          position: 'relative',
+          backgroundColor: '#f5f5f5'
+        }}>
+          <Box sx={{ 
+            position: 'relative',
+            width: '100%',
+            height: 'auto',
+            minHeight: 200,
+            backgroundImage: `url(${import.meta.env.VITE_BACKEND_ORIGIN}/files/${comment.fileId}/content)`,
+            backgroundSize: 'contain',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat'
+          }}>
+            <img 
+              src={comment.annotation} 
+              alt="Annotation" 
+              style={{ 
+                maxWidth: '100%', 
+                display: 'block',
+                position: 'relative',
+                zIndex: 1
+              }} 
+            />
+          </Box>
+        </Box>
+      )}
       
       {/* Use MentionHighlighter for comments with mentions */}
       {comment.body.includes('@') ? (
@@ -378,9 +434,12 @@ const ImageViewer = ({ file }) => {
   const [clickCoords, setClickCoords] = useState({ x: 0, y: 0 });
   const [, setSearchParams] = useSearchParams();
   const [commentText, setCommentText] = useState('');
+  const [tabValue, setTabValue] = useState(0);
+  const [annotation, setAnnotation] = useState(null);
+  const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
+  const [activeAnnotation, setActiveAnnotation] = useState(null);
+  const [showAnnotationOverlay, setShowAnnotationOverlay] = useState(false);
   
-  // Log the file object to debug
-  console.log('File object:', file);
   
   // Use the mentions hook to handle @mentions
   const {
@@ -415,17 +474,26 @@ const ImageViewer = ({ file }) => {
     e.preventDefault();
     if (!commentText.trim()) return;
     
+    const commentData = {
+      fileId: file._id,
+      body: commentText,
+      x: clickCoords.x,
+      y: clickCoords.y,
+    };
+    
+    // Add annotation if available
+    if (annotation) {
+      commentData.annotation = annotation;
+    }
+    
     createComment.mutate(
-      {
-        fileId: file._id,
-        body: commentText,
-        x: clickCoords.x,
-        y: clickCoords.y,
-      },
+      commentData,
       { 
         onSuccess: () => {
           setOpen(false);
           setCommentText('');
+          setAnnotation(null);
+          setTabValue(0);
         }
       },
     );
@@ -433,15 +501,27 @@ const ImageViewer = ({ file }) => {
 
   useEffect(function matchMarkerLayerSizeToImage() {
     const resizeObserver = new ResizeObserver(() => {
-      markerContainerRef.current.style.width = `${imageRef.current.width}px`;
-      markerContainerRef.current.style.height = `${imageRef.current.height}px`;
+      if (imageRef.current) {
+        const width = imageRef.current.width;
+        const height = imageRef.current.height;
+        
+        if (markerContainerRef.current) {
+          markerContainerRef.current.style.width = `${width}px`;
+          markerContainerRef.current.style.height = `${height}px`;
+        }
+        
+        setImageSize({ width, height });
+      }
     });
-    resizeObserver.observe(imageRef.current);
+    
+    if (imageRef.current) {
+      resizeObserver.observe(imageRef.current);
+    }
 
     return () => {
       resizeObserver.disconnect();
     };
-  }, []);
+  }, [imageRef.current]);
 
   return (
     <Box
@@ -478,27 +558,75 @@ const ImageViewer = ({ file }) => {
           pointerEvents: "none",
         }}
       >
-        {comments.map((comment) => (
+        {/* Annotation overlay */}
+        {showAnnotationOverlay && activeAnnotation && (
           <Box
-            key={comment._id}
             sx={{
-              position: "absolute",
-              left: `${comment.x}%`,
-              top: `${comment.y}%`,
-              transform: "translate(-50%, -50%)",
-              width: 20,
-              height: 20,
-              borderRadius: "50%",
-              backgroundColor: theme.palette.primary.light,
-              border: "2px solid white",
-              cursor: "pointer",
-              pointerEvents: "auto",
-              "&:hover": {
-                backgroundColor: theme.palette.primary.main,
-              },
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              zIndex: 1,
+              pointerEvents: 'none',
             }}
-            onClick={() => selectComment(comment._id)}
-          />
+          >
+            <img
+              src={activeAnnotation}
+              alt="Annotation"
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'contain',
+                pointerEvents: 'none',
+              }}
+            />
+          </Box>
+        )}
+        
+        {comments.map((comment) => (
+          <Tooltip 
+            key={comment._id} 
+            title={comment.annotation ? "Comment with annotation" : "Comment"}
+            arrow
+          >
+            <Box
+              sx={{
+                position: "absolute",
+                left: `${comment.x}%`,
+                top: `${comment.y}%`,
+                transform: "translate(-50%, -50%)",
+                width: 20,
+                height: 20,
+                borderRadius: "50%",
+                backgroundColor: comment.annotation 
+                  ? theme.palette.secondary.light 
+                  : theme.palette.primary.light,
+                border: "2px solid white",
+                boxShadow: 1,
+                cursor: "pointer",
+                pointerEvents: "auto",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                zIndex: 2,
+              }}
+              onClick={() => selectComment(comment._id)}
+              onMouseEnter={() => {
+                if (comment.annotation) {
+                  setActiveAnnotation(comment.annotation);
+                  setShowAnnotationOverlay(true);
+                }
+              }}
+              onMouseLeave={() => {
+                setShowAnnotationOverlay(false);
+              }}
+            >
+              {comment.annotation && (
+                <BrushIcon sx={{ fontSize: 12, color: "white" }} />
+              )}
+            </Box>
+          </Tooltip>
         ))}
       </Box>
       <Dialog 
@@ -507,43 +635,106 @@ const ImageViewer = ({ file }) => {
           setOpen(false);
           closeMentionSuggestions();
         }}
+        maxWidth="md"
+        fullWidth
       >
         <Box component="form" onSubmit={handleSubmit}>
-          <DialogTitle>Add a Comment</DialogTitle>
+          <DialogTitle>
+            Add a Comment
+            <IconButton
+              aria-label="close"
+              onClick={() => setOpen(false)}
+              sx={{ position: 'absolute', right: 8, top: 8 }}
+            >
+              <CloseIcon />
+            </IconButton>
+          </DialogTitle>
+          
+          <Tabs
+            value={tabValue}
+            onChange={(e, newValue) => setTabValue(newValue)}
+            sx={{ borderBottom: 1, borderColor: 'divider' }}
+          >
+            <Tab icon={<ChatIcon />} label="Comment" />
+            <Tab icon={<BrushIcon />} label="Annotate" />
+          </Tabs>
+          
           <DialogContent>
-            <MentionInput
-              autoFocus
-              margin="dense"
-              label="Comment"
-              name="body"
-              fullWidth
-              multiline
-              rows={4}
-              required
-              value={commentText}
-              onChange={(e) => {
-                // Check if the value was set by the mention selection
-                if (e.target._mentionValue) {
-                  setCommentText(e.target._mentionValue);
-                  delete e.target._mentionValue;
-                } else {
-                  setCommentText(e.target.value);
-                }
-                handleInputChange(e);
-              }}
-              onKeyDown={handleInputKeyDown}
-              inputRef={inputRef}
-              placeholder="Write a comment... (Use @ to mention users)"
-            />
+            {tabValue === 0 ? (
+              <>
+                <MentionInput
+                  autoFocus
+                  margin="dense"
+                  label="Comment"
+                  name="body"
+                  fullWidth
+                  multiline
+                  rows={4}
+                  required
+                  value={commentText}
+                  onChange={(e) => {
+                    // Check if the value was set by the mention selection
+                    if (e.target._mentionValue) {
+                      setCommentText(e.target._mentionValue);
+                      delete e.target._mentionValue;
+                    } else {
+                      setCommentText(e.target.value);
+                    }
+                    handleInputChange(e);
+                  }}
+                  onKeyDown={handleInputKeyDown}
+                  inputRef={inputRef}
+                  placeholder="Write a comment... (Use @ to mention users)"
+                />
+                
+                {/* Mention suggestions dropdown */}
+                <MentionSuggestions
+                  query={mentionState.mentionQuery}
+                  anchorEl={mentionState.mentionAnchorEl}
+                  onSelect={handleSelectUser}
+                  onClose={closeMentionSuggestions}
+                  projectId={file.projectId}
+                />
+              </>
+            ) : (
+              <Box sx={{ mt: 2 }}>
+                {imageSize.width > 0 && (
+                  <AnnotationCanvas
+                    width={Math.min(imageSize.width, 800)}
+                    height={Math.min(imageSize.height, 600)}
+                    imageUrl={`${import.meta.env.VITE_BACKEND_ORIGIN}/files/${file._id}/content`}
+                    onAnnotationChange={setAnnotation}
+                  />
+                )}
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+                  Use the drawing tools to annotate the image. Your annotations will be saved with your comment.
+                </Typography>
+              </Box>
+            )}
             
-            {/* Mention suggestions dropdown */}
-            <MentionSuggestions
-              query={mentionState.mentionQuery}
-              anchorEl={mentionState.mentionAnchorEl}
-              onSelect={handleSelectUser}
-              onClose={closeMentionSuggestions}
-              projectId={file.projectId}
-            />
+            {annotation && tabValue === 0 && (
+              <Box sx={{ mt: 2, p: 1, border: '1px dashed', borderColor: 'primary.main', borderRadius: 1 }}>
+                <Typography variant="body2" color="primary" gutterBottom>
+                  <BrushIcon fontSize="small" sx={{ verticalAlign: 'middle', mr: 0.5 }} />
+                  Annotation attached
+                </Typography>
+                <Button 
+                  size="small" 
+                  onClick={() => setTabValue(1)}
+                  color="primary"
+                >
+                  Edit Annotation
+                </Button>
+                <Button 
+                  size="small" 
+                  onClick={() => setAnnotation(null)}
+                  color="error"
+                  sx={{ ml: 1 }}
+                >
+                  Remove
+                </Button>
+              </Box>
+            )}
             
             {createComment.isError && (
               <Typography color="error">
@@ -552,18 +743,14 @@ const ImageViewer = ({ file }) => {
             )}
           </DialogContent>
           <DialogActions>
-            <Button color="main" onClick={() => {
-              setOpen(false);
-              closeMentionSuggestions();
-            }}>
-              Cancel
-            </Button>
+            <Button onClick={() => setOpen(false)}>Cancel</Button>
             <Button 
               type="submit" 
-              variant="contained"
-              disabled={!commentText.trim() || createComment.isPending}
+              variant="contained" 
+              color="primary"
+              disabled={!commentText.trim()}
             >
-              Submit
+              Add Comment
             </Button>
           </DialogActions>
         </Box>

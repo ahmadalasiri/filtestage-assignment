@@ -89,16 +89,18 @@ export default function CommentRoutes({ db, session }) {
       throw new UnauthorizedError();
     }
 
-    const { fileId, body, x, y, parentId } = z
+    const { fileId, body, x, y, parentId, annotation } = z
       .object({
         fileId: StringObjectId,
         body: z.string(),
         x: z.number().min(0).max(100),
         y: z.number().min(0).max(100),
         parentId: StringObjectId.optional(),
+        annotation: z.string().optional(), // Base64 encoded image data for annotations
       })
       .parse(req.body);
 
+    console.log("req.body___>>> ", req.body);
     // Create the comment object
     const commentData = {
       fileId,
@@ -108,6 +110,11 @@ export default function CommentRoutes({ db, session }) {
       y,
       createdAt: new Date(),
     };
+
+    // Add annotation if provided
+    if (annotation) {
+      commentData.annotation = annotation;
+    }
 
     // If this is a reply, add the parentId
     if (parentId) {
@@ -126,7 +133,7 @@ export default function CommentRoutes({ db, session }) {
       .insertOne(commentData);
 
     const newComment = await db.collection("comments").findOne({ _id: insertedId });
-    
+
     // Process mentions and send notifications
     try {
       // Check if the comment contains any mentions
@@ -136,20 +143,20 @@ export default function CommentRoutes({ db, session }) {
         if (!file) {
           throw new Error('File not found');
         }
-        
+
         const project = await db.collection("projects").findOne({ _id: file.projectId });
         if (!project) {
           throw new Error('Project not found');
         }
-        
+
         const author = await db.collection("users").findOne({ _id: userId });
         if (!author) {
           throw new Error('Author not found');
         }
-        
+
         // Process mentions and send notifications
         const mentionResults = await processMentions(db, newComment, file, project, author);
-        
+
         // Store mention results in the comment for reference
         if (mentionResults && mentionResults.length > 0) {
           await db.collection("comments").updateOne(

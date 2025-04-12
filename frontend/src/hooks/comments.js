@@ -29,10 +29,10 @@ export function useCreateComment({ fileId }) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ body, x, y, parentId }) =>
+    mutationFn: ({ body, x, y, parentId, annotation }) =>
       backendFetch("/comments", {
         method: "POST",
-        body: JSON.stringify({ fileId, body, x, y, parentId }),
+        body: JSON.stringify({ fileId, body, x, y, parentId, annotation }),
         headers: { "Content-Type": "application/json" },
       }),
     onSuccess: () => {

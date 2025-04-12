@@ -1,5 +1,5 @@
 import React from 'react';
-import { Typography } from '@mui/material';
+import { Typography, Box } from '@mui/material';
 import { styled } from '@mui/material/styles';
 
 // Style the mention spans to match the input styling
@@ -50,14 +50,14 @@ const MentionHighlighter = ({ text }) => {
 
   // If no mentions were found, return the original text
   if (parts.length === 0) {
-    return <Typography variant="body1">{text}</Typography>;
+    return <Box sx={{ typography: 'body1' }}>{text}</Box>;
   }
 
   // Render the text with highlighted mentions
   return (
-    <Typography variant="body1">
+    <Box sx={{ typography: 'body1' }}>
       {parts}
-    </Typography>
+    </Box>
   );
 };
 
