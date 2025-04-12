@@ -4,6 +4,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import morgan from "morgan";
 import dotenv from "dotenv";
+import http from "http";
 
 import Session from "./src/session.js";
 import AuthRoutes from "./src/routes/auth.js";
@@ -14,6 +15,7 @@ import CommentRoutes from "./src/routes/comments.js";
 import FolderRoutes from "./src/routes/folders.js";
 import SearchRoutes from "./src/routes/search.js";
 import { errorHandler } from "./src/errors.js";
+import { initializeSocket } from "./src/services/socket.js";
 
 dotenv.config();
 
@@ -27,6 +29,7 @@ async function main() {
   const session = await Session({ db });
 
   const app = express();
+  const server = http.createServer(app);
 
   app.use(morgan("dev"));
   app.use(express.json());
@@ -43,7 +46,10 @@ async function main() {
 
   app.use(errorHandler);
 
-  app.listen(process.env.PORT, () =>
+  // Initialize Socket.IO
+  const io = initializeSocket(server);
+
+  server.listen(process.env.PORT, () =>
     console.log(`Server running on port: ${process.env.PORT}`)
   );
 

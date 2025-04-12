@@ -3,6 +3,7 @@ import express from "express";
 import { UnauthorizedError } from "../errors.js";
 import { StringObjectId } from "../schemas.js";
 import { processMentions, formatMentions } from "../services/mentionService.js";
+import { getSocketIO } from "../services/socket.js";
 
 export default function CommentRoutes({ db, session }) {
   const router = express.Router();
@@ -100,7 +101,6 @@ export default function CommentRoutes({ db, session }) {
       })
       .parse(req.body);
 
-    console.log("req.body___>>> ", req.body);
     // Create the comment object
     const commentData = {
       fileId,
@@ -134,6 +134,27 @@ export default function CommentRoutes({ db, session }) {
 
     const newComment = await db.collection("comments").findOne({ _id: insertedId });
 
+    // Get author information to include with the comment
+    const author = await db.collection("users").findOne({ _id: userId });
+    const commentWithAuthor = { ...newComment, author };
+
+    // Emit real-time event to all users viewing this file
+    try {
+      const io = getSocketIO();
+      
+      // Emit to specific room
+      io.to(`file-${fileId}`).emit('new-comment', commentWithAuthor);
+      
+      // Also emit to all connected clients as a fallback
+      io.emit('global-new-comment', {
+        ...commentWithAuthor,
+        fileId: fileId.toString()
+      });
+    } catch (error) {
+      console.error('Socket.IO error when emitting comment:', error.message);
+      // Continue with the comment creation process even if socket fails
+    }
+
     // Process mentions and send notifications
     try {
       // Check if the comment contains any mentions
@@ -149,13 +170,13 @@ export default function CommentRoutes({ db, session }) {
           throw new Error('Project not found');
         }
 
-        const author = await db.collection("users").findOne({ _id: userId });
-        if (!author) {
+        const commentAuthor = await db.collection("users").findOne({ _id: userId });
+        if (!commentAuthor) {
           throw new Error('Author not found');
         }
 
         // Process mentions and send notifications
-        const mentionResults = await processMentions(db, newComment, file, project, author);
+        const mentionResults = await processMentions(db, newComment, file, project, commentAuthor);
 
         // Store mention results in the comment for reference
         if (mentionResults && mentionResults.length > 0) {

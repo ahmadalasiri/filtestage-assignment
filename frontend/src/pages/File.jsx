@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import TopBar from "../components/TopBar";
 import {
   Box,
@@ -20,6 +20,8 @@ import {
   Link,
   Tabs,
   Tab,
+  Snackbar,
+  Alert,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import ReplyIcon from "@mui/icons-material/Reply";
@@ -45,6 +47,7 @@ import MentionSuggestions from "../components/MentionSuggestions";
 import MentionHighlighter from "../components/MentionHighlighter";
 import MentionInput from "../components/MentionInput";
 import AnnotationCanvas from "../components/AnnotationCanvas";
+import { useFileSocket } from "../services/socketService";
 
 // Reply form component
 const ReplyForm = ({ fileId, parentId, onCancel }) => {
@@ -425,8 +428,8 @@ const CommentBar = ({ fileId }) => {
 
 const ImageViewer = ({ file }) => {
   const theme = useTheme();
-  const { data } = useComments({ fileId: file._id });
-  const comments = data?.pages.flatMap(page => page.comments.flat()) || [];
+  const { data, refetch } = useComments({ fileId: file._id });
+  const [localComments, setLocalComments] = useState([]);
   const createComment = useCreateComment({ fileId: file._id });
   const imageRef = useRef(null);
   const markerContainerRef = useRef(null);
@@ -439,7 +442,66 @@ const ImageViewer = ({ file }) => {
   const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
   const [activeAnnotation, setActiveAnnotation] = useState(null);
   const [showAnnotationOverlay, setShowAnnotationOverlay] = useState(false);
+  const [notification, setNotification] = useState({ open: false, message: '' });
   
+  // Get comments from the API data
+  useEffect(() => {
+    if (data) {
+      const apiComments = data.pages.flatMap(page => page.comments.flat()) || [];
+      setLocalComments(apiComments);
+    }
+  }, [data]);
+
+  // Connect to Socket.IO for real-time updates
+  const handleNewComment = useCallback((comment) => {
+    // Check if we already have this comment (to avoid duplicates)
+    if (!localComments.some(c => c._id === comment._id)) {
+      // Force a refetch to ensure we have the latest data
+      // This is a backup to ensure UI consistency
+      refetch().catch(err => console.error('Error refetching comments:', err));
+      
+      // Add the new comment to our local state immediately for real-time feedback
+      setLocalComments(prevComments => {
+        // Create a new array with the new comment
+        const updatedComments = [...prevComments, comment];
+        
+        // Show notification with comment content
+        const commentPreview = comment.body.length > 50 
+          ? `${comment.body.substring(0, 50)}...` 
+          : comment.body;
+          
+        setNotification({
+          open: true,
+          message: `${comment.author.email}: "${commentPreview}"`
+        });
+        
+        return updatedComments;
+      });
+      
+      // Update the comment marker on the image
+      // This ensures the new comment marker appears immediately
+      setTimeout(() => {
+        if (markerContainerRef.current) {
+          // Force a re-render of the markers
+          const currentStyle = markerContainerRef.current.style.display;
+          markerContainerRef.current.style.display = 'none';
+          setTimeout(() => {
+            if (markerContainerRef.current) {
+              markerContainerRef.current.style.display = currentStyle;
+            }
+          }, 10);
+        }
+      }, 100);
+    }
+  }, [localComments, refetch]);
+
+  // Use the Socket.IO hook to connect to the file room
+  const { isConnected } = useFileSocket(file._id, handleNewComment);
+  
+  // Monitor socket connection status
+  useEffect(() => {
+    // This effect is used to track socket connection status changes
+  }, [isConnected, file._id]);
   
   // Use the mentions hook to handle @mentions
   const {
@@ -523,6 +585,11 @@ const ImageViewer = ({ file }) => {
     };
   }, [imageRef.current]);
 
+  // Close notification
+  const handleCloseNotification = () => {
+    setNotification({ ...notification, open: false });
+  };
+
   return (
     <Box
       sx={{
@@ -533,6 +600,35 @@ const ImageViewer = ({ file }) => {
         position: "relative",
       }}
     >
+      {/* Notification for new comments */}
+      <Snackbar 
+        open={notification.open} 
+        autoHideDuration={6000} 
+        onClose={handleCloseNotification}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Alert 
+          onClose={handleCloseNotification} 
+          severity="info" 
+          variant="filled"
+          sx={{ 
+            width: '100%', 
+            maxWidth: '400px',
+            '& .MuiAlert-message': {
+              overflow: 'hidden',
+              textOverflow: 'ellipsis'
+            }
+          }}
+          icon={<ChatIcon />}
+        >
+          <Typography variant="subtitle2" component="div" sx={{ fontWeight: 'bold' }}>
+            New Comment
+          </Typography>
+          <Typography variant="body2" component="div">
+            {notification.message}
+          </Typography>
+        </Alert>
+      </Snackbar>
       <Tooltip title="Click to leave a comment" arrow>
         <img
           ref={imageRef}
@@ -584,7 +680,7 @@ const ImageViewer = ({ file }) => {
           </Box>
         )}
         
-        {comments.map((comment) => (
+        {localComments.map((comment) => (
           <Tooltip 
             key={comment._id} 
             title={comment.annotation ? "Comment with annotation" : "Comment"}
