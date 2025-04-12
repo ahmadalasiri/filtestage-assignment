@@ -53,10 +53,27 @@ export function useUploadFile() {
       });
     },
     onSuccess: (file) => {
-      queryClient.setQueryData(["files", file.projectId], (data) => [
-        ...data,
-        file,
-      ]);
+      queryClient.invalidateQueries(["files", file.projectId]);
+    },
+  });
+}
+
+// Hook to upload a new version of a file
+export function useUploadFileVersion() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ fileId, file }) => {
+      const formData = new FormData();
+      formData.append("file", file);
+      return backendFetch(`/files/${fileId}/versions`, {
+        method: "POST",
+        body: formData,
+      });
+    },
+    onSuccess: (newVersion) => {
+      // Invalidate the project files query to show the updated files
+      queryClient.invalidateQueries(["files", newVersion.projectId]);
     },
   });
 }

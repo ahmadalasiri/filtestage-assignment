@@ -54,6 +54,8 @@ export default function FileRoutes({ db, session }) {
       path: req.file.path,
       createdAt: new Date(),
       deadline: deadline,
+      version: 1,
+      originalFileId: null,
     });
 
     res
@@ -143,7 +145,6 @@ export default function FileRoutes({ db, session }) {
     res.sendFile(path.join(process.cwd(), file.path));
   });
 
-  // Add endpoint to update file deadline
   router.patch("/:id/deadline", async (req, res) => {
     const { userId } = await session.get(req);
     if (!userId) {
@@ -170,15 +171,68 @@ export default function FileRoutes({ db, session }) {
 
     await db.collection("files").updateOne(
       { _id: fileId },
-      {
-        $set: {
-          deadline: deadline
-        }
-      }
+      { $set: { deadline } }
     );
 
     const updatedFile = await db.collection("files").findOne({ _id: fileId });
     res.json(updatedFile);
+  });
+
+  router.post("/:id/versions", upload.single("file"), async (req, res) => {
+    const { userId } = await session.get(req);
+    if (!userId) {
+      throw new UnauthorizedError();
+    }
+
+    if (!req.file || ![
+      "image/jpeg",
+      "image/png"
+    ].includes(req.file.mimetype)) {
+      throw new ValidationError("Invalid file type");
+    }
+
+    const originalFileId = new ObjectId(req.params.id);
+    const originalFile = await db.collection("files").findOne({ _id: originalFileId });
+
+    if (!originalFile) {
+      throw new NotFoundError("Original file not found");
+    }
+
+    const project = await db.collection("projects").findOne({ _id: originalFile.projectId });
+    if (!project) {
+      throw new NotFoundError("Project not found");
+    }
+
+    if (!project.authorId.equals(userId) &&
+      !project.reviewers.some(reviewer => reviewer.equals(userId))) {
+      throw new ForbiddenError();
+    }
+
+    const latestVersion = await db
+      .collection("files")
+      .find({
+        originalFileId: originalFileId
+      })
+      .sort({ version: -1 })
+      .limit(1)
+      .toArray();
+
+    const nextVersion = latestVersion.length > 0 ? latestVersion[0].version + 1 : 2;
+
+    const { insertedId } = await db.collection("files").insertOne({
+      projectId: originalFile.projectId,
+      authorId: userId,
+      name: req.file.originalname || originalFile.name,
+      path: req.file.path,
+      createdAt: new Date(),
+      deadline: originalFile.deadline,
+      version: nextVersion,
+      originalFileId: originalFileId,
+    });
+
+    res
+      .status(201)
+      .json(await db.collection("files").findOne({ _id: insertedId }));
   });
 
   return router;

@@ -18,7 +18,11 @@ import {
   DialogContentText,
   DialogActions,
   TextField,
+  Chip,
+  IconButton,
 } from "@mui/material";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import {
   useInviteReviewer,
   useProjects,
@@ -349,50 +353,122 @@ const formatDeadline = (deadline) => {
 
 // Status badge removed
 
-// File item component with deadline display
-const FileItem = ({ file, userId, navigate }) => {
-  const deadlineInfo = formatDeadline(file.deadline);
-  const isOwner = file.authorId === userId;
+// File group component to display a file with its versions
+const FileGroup = ({ files, userId, navigate }) => {
+  const [expanded, setExpanded] = useState(false);
+  const mainFile = files[0]; // The latest version is first
+  const hasVersions = files.length > 1;
+  
+  const deadlineInfo = formatDeadline(mainFile.deadline);
+  const isOwner = mainFile.authorId === userId;
+  
+  const toggleExpanded = (e) => {
+    e.stopPropagation();
+    setExpanded(!expanded);
+  };
   
   return (
-    <ListItem
-      key={file._id}
-      secondaryAction={<CopyFileLinkButton fileId={file._id} />}
-    >
-      <ListItemButton onClick={() => navigate(`/files/${file._id}`)}>
-        <ListItemAvatar>
-          <Avatar
-            variant="square"
-            alt={file.name}
-            src={`${import.meta.env.VITE_BACKEND_ORIGIN}/files/${file._id}/content`}
-            sx={{ width: 56, height: 56, mr: 2 }}
-          />
-        </ListItemAvatar>
-        <Box sx={{ display: "flex", flexDirection: "column", width: "100%" }}>
-          <Typography
-            variant="body1"
-            sx={{
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-              maxWidth: "300px",
-            }}
-          >
-            {file.name}
-          </Typography>
-          {deadlineInfo && (
-            <Typography 
-              variant="caption" 
-              color={deadlineInfo.isPast ? "error" : "text.secondary"}
-              sx={{ display: "flex", alignItems: "center", mt: 0.5 }}
+    <Box sx={{ mb: 1, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
+      <ListItem
+        key={mainFile._id}
+        secondaryAction={<CopyFileLinkButton fileId={mainFile._id} />}
+      >
+        <ListItemButton onClick={() => navigate(`/files/${mainFile._id}`)}>
+          <ListItemAvatar>
+            <Avatar
+              variant="square"
+              alt={mainFile.name}
+              src={`${import.meta.env.VITE_BACKEND_ORIGIN}/files/${mainFile._id}/content`}
+              sx={{ width: 56, height: 56, mr: 2 }}
+            />
+          </ListItemAvatar>
+          <Box sx={{ display: "flex", flexDirection: "column", width: "100%" }}>
+            <Box sx={{ display: "flex", alignItems: "center" }}>
+              <Typography
+                variant="body1"
+                sx={{
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  maxWidth: "250px",
+                  mr: 1
+                }}
+              >
+                {mainFile.name}
+              </Typography>
+              
+              <Chip 
+                label={`v${mainFile.version}`} 
+                color="primary" 
+                size="small"
+                sx={{ height: 20, fontSize: '0.7rem' }}
+              />
+              
+              {hasVersions && (
+                <IconButton size="small" onClick={toggleExpanded} sx={{ ml: 1 }}>
+                  {expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                </IconButton>
+              )}
+            </Box>
+            
+            {deadlineInfo && (
+              <Typography 
+                variant="caption" 
+                color={deadlineInfo.isPast ? "error" : "text.secondary"}
+                sx={{ display: "flex", alignItems: "center", mt: 0.5 }}
+              >
+                Deadline: {deadlineInfo.text}
+                {deadlineInfo.isPast && " (Overdue)"}
+              </Typography>
+            )}
+          </Box>
+        </ListItemButton>
+      </ListItem>
+      
+      {/* Versions dropdown */}
+      {expanded && hasVersions && (
+        <Box sx={{ pl: 7, pr: 2, pb: 1, borderTop: '1px dashed', borderColor: 'divider' }}>
+          {files.slice(1).map((version) => (
+            <Box 
+              key={version._id} 
+              sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                py: 1,
+                borderBottom: '1px dotted',
+                borderColor: 'divider',
+                '&:last-child': { borderBottom: 0 }
+              }}
             >
-              Deadline: {deadlineInfo.text}
-              {deadlineInfo.isPast && " (Overdue)"}
-            </Typography>
-          )}
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  flex: 1,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {version.name}
+              </Typography>
+              <Chip 
+                label={`v${version.version}`} 
+                color="default" 
+                size="small"
+                sx={{ height: 18, fontSize: '0.65rem', mr: 1 }}
+              />
+              <Button 
+                size="small" 
+                variant="text" 
+                onClick={() => navigate(`/files/${version._id}`)}
+              >
+                View
+              </Button>
+            </Box>
+          ))}
         </Box>
-      </ListItemButton>
-    </ListItem>
+      )}
+    </Box>
   );
 };
 
@@ -402,6 +478,37 @@ const Project = ({ project }) => {
   const {
     data: { userId },
   } = useSession();
+
+  // Group files by originalFileId or their own id if they are originals
+  const groupFiles = () => {
+    const fileGroups = {};
+    
+    // First pass: create groups
+    files.forEach(file => {
+      if (file.originalFileId) {
+        // This is a version of another file
+        if (!fileGroups[file.originalFileId]) {
+          fileGroups[file.originalFileId] = [];
+        }
+        fileGroups[file.originalFileId].push(file);
+      } else {
+        // This is an original file
+        if (!fileGroups[file._id]) {
+          fileGroups[file._id] = [];
+        }
+        fileGroups[file._id].push(file);
+      }
+    });
+    
+    // Sort each group by version
+    Object.keys(fileGroups).forEach(groupId => {
+      fileGroups[groupId].sort((a, b) => b.version - a.version); // Descending order
+    });
+    
+    return Object.values(fileGroups);
+  };
+
+  const fileGroups = groupFiles();
 
   return (
     <Box sx={{ px: 4, flexGrow: 1 }}>
@@ -426,10 +533,10 @@ const Project = ({ project }) => {
 
       {files.length === 0 && <Typography variant="h6">No files yet</Typography>}
       <List sx={{ width: "600px" }}>
-        {files.map((file) => (
-          <FileItem 
-            key={file._id} 
-            file={file} 
+        {fileGroups.map((fileGroup) => (
+          <FileGroup 
+            key={fileGroup[0]._id} 
+            files={fileGroup} 
             userId={userId} 
             navigate={navigate} 
           />

@@ -23,7 +23,9 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
-import { useSelectedFile, useUpdateDeadline } from "../hooks/files";
+import UploadIcon from "@mui/icons-material/Upload";
+import VersionsIcon from "@mui/icons-material/Collections";
+import { useSelectedFile, useUpdateDeadline, useUploadFileVersion } from "../hooks/files";
 import { useTheme } from "@mui/material/styles";
 import { useComments, useCreateComment } from "../hooks/comments";
 import { useSearchParams } from "react-router-dom";
@@ -490,7 +492,87 @@ const DeadlineDialog = ({ file, onClose, open }) => {
   );
 };
 
-// File header component with deadline information
+// Upload new version dialog component
+const UploadVersionDialog = ({ file, onClose, open }) => {
+  const [newFile, setNewFile] = useState(null);
+  const uploadVersion = useUploadFileVersion();
+
+  const handleFileChange = (e) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setNewFile(e.target.files[0]);
+    }
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!newFile) return;
+
+    uploadVersion.mutate(
+      { 
+        fileId: file._id, 
+        file: newFile 
+      },
+      {
+        onSuccess: () => {
+          setNewFile(null);
+          onClose();
+        },
+      }
+    );
+  };
+
+  return (
+    <Dialog open={open} onClose={onClose}>
+      <DialogTitle>Upload New Version</DialogTitle>
+      <Box component="form" onSubmit={handleSubmit}>
+        <DialogContent>
+          <Typography variant="body2" sx={{ mb: 2 }}>
+            Upload a new version of "{file.name}" to address reviewer comments.
+          </Typography>
+          
+          <Button
+            fullWidth
+            variant={!newFile ? "contained" : "text"}
+            component="label"
+            startIcon={<UploadIcon />}
+            sx={{ mb: 2 }}
+          >
+            Select File
+            <input
+              type="file"
+              hidden
+              accept="image/jpeg,image/png"
+              onChange={handleFileChange}
+              required
+            />
+          </Button>
+          
+          {newFile && (
+            <Typography variant="body2" sx={{ mb: 2 }}>
+              Selected file: {newFile.name}
+            </Typography>
+          )}
+          
+          {uploadVersion.isError && (
+            <Typography color="error">{uploadVersion.error.message}</Typography>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button 
+            type="submit" 
+            variant="contained" 
+            disabled={!newFile || uploadVersion.isPending}
+          >
+            {uploadVersion.isPending ? "Uploading..." : "Upload New Version"}
+          </Button>
+        </DialogActions>
+      </Box>
+    </Dialog>
+  );
+};
+
+// File header component with deadline and version information
 const FileHeader = ({ file }) => {
   const theme = useTheme();
   const { data: { userId } } = useSession();
@@ -498,6 +580,7 @@ const FileHeader = ({ file }) => {
   
   const [anchorEl, setAnchorEl] = useState(null);
   const [showDeadlineDialog, setShowDeadlineDialog] = useState(false);
+  const [showUploadVersionDialog, setShowUploadVersionDialog] = useState(false);
   
   const handleMenuOpen = (event) => {
     setAnchorEl(event.currentTarget);
@@ -510,6 +593,11 @@ const FileHeader = ({ file }) => {
   const handleSetDeadline = () => {
     handleMenuClose();
     setShowDeadlineDialog(true);
+  };
+
+  const handleUploadVersion = () => {
+    handleMenuClose();
+    setShowUploadVersionDialog(true);
   };
   
   // Format deadline for display
@@ -546,6 +634,16 @@ const FileHeader = ({ file }) => {
       <Box sx={{ display: "flex", alignItems: "center" }}>
         <Typography variant="h6" sx={{ mr: 2 }}>{file.name}</Typography>
         
+        {file.version && (
+          <Chip 
+            icon={<VersionsIcon />} 
+            label={`v${file.version}`} 
+            color="primary" 
+            size="small" 
+            sx={{ mr: 1 }}
+          />
+        )}
+        
         {deadlineInfo && (
           <Chip 
             icon={<AccessTimeIcon />} 
@@ -557,34 +655,43 @@ const FileHeader = ({ file }) => {
         )}
       </Box>
       
-      {isOwner && (
-        <Box>
-          <IconButton onClick={handleMenuOpen}>
-            <MoreVertIcon />
-          </IconButton>
-          <Menu
-            anchorEl={anchorEl}
-            open={Boolean(anchorEl)}
-            onClose={handleMenuClose}
-          >
+      <Box>
+        <IconButton onClick={handleMenuOpen}>
+          <MoreVertIcon />
+        </IconButton>
+        <Menu
+          anchorEl={anchorEl}
+          open={Boolean(anchorEl)}
+          onClose={handleMenuClose}
+        >
+          <MenuItem onClick={handleUploadVersion}>
+            Upload New Version
+          </MenuItem>
+          {isOwner && (
             <MenuItem onClick={handleSetDeadline}>
               {file.deadline ? "Update Deadline" : "Set Deadline"}
             </MenuItem>
-          </Menu>
-          
-          <DeadlineDialog 
-            file={file} 
-            open={showDeadlineDialog} 
-            onClose={() => setShowDeadlineDialog(false)} 
-          />
-        </Box>
-      )}
+          )}
+        </Menu>
+        
+        <DeadlineDialog 
+          file={file} 
+          open={showDeadlineDialog} 
+          onClose={() => setShowDeadlineDialog(false)} 
+        />
+        
+        <UploadVersionDialog
+          file={file}
+          open={showUploadVersionDialog}
+          onClose={() => setShowUploadVersionDialog(false)}
+        />
+      </Box>
     </Box>
   );
 };
 
 const File = () => {
-  const { data: file, isLoading, isError } = useSelectedFile();
+  const { data: file, isLoading } = useSelectedFile();
   const theme = useTheme();
 
   if (isLoading) {
