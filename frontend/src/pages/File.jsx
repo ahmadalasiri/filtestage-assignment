@@ -30,16 +30,34 @@ import { useSelectedFile, useUpdateDeadline, useUploadFileVersion } from "../hoo
 import { useTheme } from "@mui/material/styles";
 import { useComments, useCreateComment } from "../hooks/comments";
 import { useSearchParams } from "react-router-dom";
-import { useUser } from "../hooks/users";
 import { useSession } from "../hooks/auth";
+import { useUser } from "../hooks/users";
 import UserAvatar from "../components/UserAvatar";
 import Loading from "../pages/Loading";
 import { linkifyText } from "../utils/linkify";
+import { useMentions } from '../hooks/mentions';
+import MentionSuggestions from "../components/MentionSuggestions";
+import MentionHighlighter from "../components/MentionHighlighter";
+import MentionInput from "../components/MentionInput";
 
 // Reply form component
 const ReplyForm = ({ fileId, parentId, onCancel }) => {
   const createComment = useCreateComment({ fileId });
   const [replyText, setReplyText] = useState("");
+  const { data: file } = useSelectedFile();
+  
+  // Use the mentions hook to handle @mentions
+  const {
+    inputRef,
+    mentionState,
+    handleInputChange,
+    handleInputKeyDown,
+    handleSelectUser,
+    closeMentionSuggestions
+  } = useMentions({ 
+    projectId: file?.projectId,
+    onChange: (e) => setReplyText(e.target.value)
+  });
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -65,16 +83,36 @@ const ReplyForm = ({ fileId, parentId, onCancel }) => {
 
   return (
     <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1, mb: 2 }}>
-      <TextField
+      <MentionInput
         fullWidth
-        size="small"
-        placeholder="Write a reply..."
+        placeholder="Write a reply... (Use @ to mention users)"
         value={replyText}
-        onChange={(e) => setReplyText(e.target.value)}
         multiline
         rows={2}
+        onChange={(e) => {
+          // Check if the value was set by the mention selection
+          if (e.target._mentionValue) {
+            setReplyText(e.target._mentionValue);
+            delete e.target._mentionValue;
+          } else {
+            setReplyText(e.target.value);
+          }
+          handleInputChange(e);
+        }}
+        onKeyDown={handleInputKeyDown}
+        inputRef={inputRef}
         sx={{ mb: 1 }}
       />
+      
+      {/* Mention suggestions dropdown */}
+      <MentionSuggestions
+        query={mentionState.mentionQuery}
+        anchorEl={mentionState.mentionAnchorEl}
+        onSelect={handleSelectUser}
+        onClose={closeMentionSuggestions}
+        projectId={file?.projectId}
+      />
+      
       <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 1 }}>
         <Button size="small" onClick={onCancel}>
           Cancel
@@ -166,7 +204,7 @@ const CommentContent = ({ comment, isParent }) => {
   
   if (isLoading) return null;
   
-  // Process the comment body to linkify URLs
+  // Process the comment body to linkify URLs and highlight mentions
   const processedContent = linkifyText(comment.body);
   
   return (
@@ -183,30 +221,63 @@ const CommentContent = ({ comment, isParent }) => {
           </Typography>
         </Box>
       </Box>
-      <Typography variant="body1">
-        {Array.isArray(processedContent) ? (
-          processedContent.map((part, index) => {
-            if (typeof part === 'string') {
-              return <span key={index}>{part}</span>;
-            } else if (part.type === 'link') {
-              return (
-                <Link 
-                  key={part.key} 
-                  href={part.href} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  sx={{ wordBreak: 'break-word' }}
-                >
-                  {part.text}
-                </Link>
-              );
-            }
-            return null;
-          })
-        ) : (
-          processedContent
-        )}
-      </Typography>
+      
+      {/* Use MentionHighlighter for comments with mentions */}
+      {comment.body.includes('@') ? (
+        <Box>
+          {Array.isArray(processedContent) ? (
+            <Typography variant="body1">
+              {processedContent.map((part, index) => {
+                if (typeof part === 'string') {
+                  // Use MentionHighlighter for text parts that might contain mentions
+                  return <MentionHighlighter key={index} text={part} />;
+                } else if (part.type === 'link') {
+                  return (
+                    <Link 
+                      key={part.key} 
+                      href={part.href} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      sx={{ wordBreak: 'break-word' }}
+                    >
+                      {part.text}
+                    </Link>
+                  );
+                }
+                return null;
+              })}
+            </Typography>
+          ) : (
+            <MentionHighlighter text={processedContent} />
+          )}
+        </Box>
+      ) : (
+        // Regular comment without mentions
+        <Typography variant="body1">
+          {Array.isArray(processedContent) ? (
+            processedContent.map((part, index) => {
+              if (typeof part === 'string') {
+                return <span key={index}>{part}</span>;
+              } else if (part.type === 'link') {
+                return (
+                  <Link 
+                    key={part.key} 
+                    href={part.href} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    sx={{ wordBreak: 'break-word' }}
+                  >
+                    {part.text}
+                  </Link>
+                );
+              }
+              return null;
+            })
+          ) : (
+            processedContent
+          )}
+        </Typography>
+      )}
     </Box>
   );
 };
@@ -306,6 +377,23 @@ const ImageViewer = ({ file }) => {
   const [open, setOpen] = useState(false);
   const [clickCoords, setClickCoords] = useState({ x: 0, y: 0 });
   const [, setSearchParams] = useSearchParams();
+  const [commentText, setCommentText] = useState('');
+  
+  // Log the file object to debug
+  console.log('File object:', file);
+  
+  // Use the mentions hook to handle @mentions
+  const {
+    inputRef,
+    mentionState,
+    handleInputChange,
+    handleInputKeyDown,
+    handleSelectUser,
+    closeMentionSuggestions
+  } = useMentions({ 
+    projectId: file.projectId,
+    onChange: (e) => setCommentText(e.target.value)
+  });
 
   const selectComment = (commentId) => {
     setSearchParams({ commentId }, { replace: true });
@@ -325,14 +413,21 @@ const ImageViewer = ({ file }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (!commentText.trim()) return;
+    
     createComment.mutate(
       {
         fileId: file._id,
-        body: e.target.elements.body.value,
+        body: commentText,
         x: clickCoords.x,
         y: clickCoords.y,
       },
-      { onSuccess: () => setOpen(false) },
+      { 
+        onSuccess: () => {
+          setOpen(false);
+          setCommentText('');
+        }
+      },
     );
   };
 
@@ -406,20 +501,50 @@ const ImageViewer = ({ file }) => {
           />
         ))}
       </Box>
-      <Dialog open={open} onClose={() => setOpen(false)}>
+      <Dialog 
+        open={open} 
+        onClose={() => {
+          setOpen(false);
+          closeMentionSuggestions();
+        }}
+      >
         <Box component="form" onSubmit={handleSubmit}>
           <DialogTitle>Add a Comment</DialogTitle>
           <DialogContent>
-            <TextField
+            <MentionInput
               autoFocus
               margin="dense"
               label="Comment"
               name="body"
               fullWidth
               multiline
-              rows={3}
+              rows={4}
               required
+              value={commentText}
+              onChange={(e) => {
+                // Check if the value was set by the mention selection
+                if (e.target._mentionValue) {
+                  setCommentText(e.target._mentionValue);
+                  delete e.target._mentionValue;
+                } else {
+                  setCommentText(e.target.value);
+                }
+                handleInputChange(e);
+              }}
+              onKeyDown={handleInputKeyDown}
+              inputRef={inputRef}
+              placeholder="Write a comment... (Use @ to mention users)"
             />
+            
+            {/* Mention suggestions dropdown */}
+            <MentionSuggestions
+              query={mentionState.mentionQuery}
+              anchorEl={mentionState.mentionAnchorEl}
+              onSelect={handleSelectUser}
+              onClose={closeMentionSuggestions}
+              projectId={file.projectId}
+            />
+            
             {createComment.isError && (
               <Typography color="error">
                 {createComment.error.message}
@@ -427,10 +552,17 @@ const ImageViewer = ({ file }) => {
             )}
           </DialogContent>
           <DialogActions>
-            <Button color="main" onClick={() => setOpen(false)}>
+            <Button color="main" onClick={() => {
+              setOpen(false);
+              closeMentionSuggestions();
+            }}>
               Cancel
             </Button>
-            <Button type="submit" variant="contained">
+            <Button 
+              type="submit" 
+              variant="contained"
+              disabled={!commentText.trim() || createComment.isPending}
+            >
               Submit
             </Button>
           </DialogActions>

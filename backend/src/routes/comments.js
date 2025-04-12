@@ -2,6 +2,7 @@ import { z } from "zod";
 import express from "express";
 import { UnauthorizedError } from "../errors.js";
 import { StringObjectId } from "../schemas.js";
+import { processMentions, formatMentions } from "../services/mentionService.js";
 
 export default function CommentRoutes({ db, session }) {
   const router = express.Router();
@@ -124,9 +125,45 @@ export default function CommentRoutes({ db, session }) {
       .collection("comments")
       .insertOne(commentData);
 
-    res
-      .status(201)
-      .json(await db.collection("comments").findOne({ _id: insertedId }));
+    const newComment = await db.collection("comments").findOne({ _id: insertedId });
+    
+    // Process mentions and send notifications
+    try {
+      // Check if the comment contains any mentions
+      if (body.includes('@')) {
+        // Get file and project information for the email template
+        const file = await db.collection("files").findOne({ _id: fileId });
+        if (!file) {
+          throw new Error('File not found');
+        }
+        
+        const project = await db.collection("projects").findOne({ _id: file.projectId });
+        if (!project) {
+          throw new Error('Project not found');
+        }
+        
+        const author = await db.collection("users").findOne({ _id: userId });
+        if (!author) {
+          throw new Error('Author not found');
+        }
+        
+        // Process mentions and send notifications
+        const mentionResults = await processMentions(db, newComment, file, project, author);
+        
+        // Store mention results in the comment for reference
+        if (mentionResults && mentionResults.length > 0) {
+          await db.collection("comments").updateOne(
+            { _id: insertedId },
+            { $set: { mentionNotifications: mentionResults } }
+          );
+        }
+      }
+    } catch (error) {
+      console.error('Error processing mentions:', error.message);
+      // Continue with the comment creation process
+    }
+
+    res.status(201).json(newComment);
   });
 
   return router;
