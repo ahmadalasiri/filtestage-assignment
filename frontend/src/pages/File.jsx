@@ -965,13 +965,6 @@ const ImageViewer = ({ file, isAnnotationMode, setIsAnnotationMode }) => {
             <Box
               sx={{ display: "flex", justifyContent: "space-between", mt: 1 }}
             >
-              <Button
-                startIcon={<BrushIcon />}
-                onClick={toggleAnnotationMode}
-                color={annotation ? "secondary" : "primary"}
-              >
-                {annotation ? "Edit Annotation" : "Add Annotation"}
-              </Button>
               <Box>
                 <Button onClick={cancelComment} sx={{ mr: 1 }}>
                   Cancel
