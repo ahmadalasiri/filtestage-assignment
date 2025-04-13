@@ -4,7 +4,7 @@ import { ApiError } from "../exceptions/ApiError.js";
 
 import { StringObjectId } from "../schemas.js";
 import { processMentions, formatMentions } from "../services/mentionService.js";
-import { getSocketIO } from "../services/socket.js";
+import { getSocketIO } from "../server/socket.js";
 
 export default function CommentRoutes({ db, session }) {
   const router = express.Router();

@@ -9,4 +9,5 @@ export const env = cleanEnv(process.env, {
   MONGO_URI: url(),
   FRONTEND_ORIGIN: url({ default: 'http://localhost:3000' }),
   COOKIE_SECRET: str(),
+  DOMAIN: str(),
 });

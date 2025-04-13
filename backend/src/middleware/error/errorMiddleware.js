@@ -38,14 +38,6 @@ export const errorMiddleware = (err, req, res, next) => {
       error = handleValidationError(err);
     }
 
-    // JWT Errors
-    if (err.name === 'JsonWebTokenError') {
-      error = new ApiError(401, 'Invalid token. Please log in again.');
-    }
-    if (err.name === 'TokenExpiredError') {
-      error = new ApiError(401, 'Your token has expired. Please log in again.');
-    }
-
     sendProductionResponse(error, req, res);
   }
 };

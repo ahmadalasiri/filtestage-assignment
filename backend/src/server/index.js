@@ -3,11 +3,21 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import morgan from 'morgan';
 import http from 'http';
-import { initializeSocket } from '../services/socket.js';
+import { initializeSocket } from './socket.js';
 import { setupShutdownHandler } from '../exceptions/index.js';
 import { errorMiddleware } from '../middleware/error/index.js';
 import { notFound } from '../exceptions/index.js';
 import { env } from '../config/validateEnv.js';
+import { createAuthMiddleware } from '../middleware/auth/authMiddleware.js';
+
+// Import route handlers
+import AuthRoutes from '../routes/auth.js';
+import UserRoutes from '../routes/user.js';
+import ProjectRoutes from '../routes/projects.js';
+import FileRoutes from '../routes/files.js';
+import CommentRoutes from '../routes/comments.js';
+import FolderRoutes from '../routes/folders.js';
+import SearchRoutes from '../routes/search.js';
 
 export class Server {
   constructor(config = {}) {
@@ -17,11 +27,13 @@ export class Server {
       cookieSecret: config.cookieSecret || env.COOKIE_SECRET,
       ...config
     };
-    
+
     this.server = http.createServer(this.app);
     this.db = config.db;
     this.io = null;
-    
+    this.session = config.session;
+    this.auth = createAuthMiddleware(this.session);
+
     this.configureMiddleware();
   }
 
@@ -35,15 +47,34 @@ export class Server {
     this.app.use(cookieParser(this.config.cookieSecret));
   }
 
-  registerRoutes(routes) {
+  registerRoutes() {
+    // Get the MongoDB database instance from the database service
+    const db = this.db.db;
+    const session = this.session;
+
+    // Create route handlers
+    const routes = {
+      auth: AuthRoutes({ db, session }),
+      users: UserRoutes({ db, session }),
+      projects: ProjectRoutes({ db, session }),
+      folders: FolderRoutes({ db, session }),
+      files: FileRoutes({ db, session }),
+      comments: CommentRoutes({ db, session }),
+      search: SearchRoutes({ db, session })
+    };
+
+    // Public routes (no authentication required)
     this.app.use('/auth', routes.auth);
-    this.app.use('/users', routes.users);
-    this.app.use('/projects', routes.projects);
-    this.app.use('/folders', routes.folders);
-    this.app.use('/files', routes.files);
-    this.app.use('/comments', routes.comments);
-    this.app.use('/search', routes.search);
-    
+
+    // Protected routes (authentication required)
+    this.app.use('/users', this.auth.authenticate, routes.users);
+    this.app.use('/projects', this.auth.authenticate, routes.projects);
+    this.app.use('/folders', this.auth.authenticate, routes.folders);
+    this.app.use('/files', this.auth.authenticate, routes.files);
+    this.app.use('/comments', this.auth.authenticate, routes.comments);
+    this.app.use('/search', this.auth.authenticate, routes.search);
+
+    // Error handling
     this.app.use(notFound);
     this.app.use(errorMiddleware);
   }
