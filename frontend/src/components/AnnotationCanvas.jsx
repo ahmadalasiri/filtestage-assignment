@@ -1,30 +1,30 @@
-import React, { useRef, useState, useEffect } from 'react';
-import { Box, IconButton, Tooltip } from '@mui/material';
-import { styled } from '@mui/material/styles';
-import BrushIcon from '@mui/icons-material/Brush';
-import UndoIcon from '@mui/icons-material/Undo';
-import ClearIcon from '@mui/icons-material/Clear';
-import PaletteIcon from '@mui/icons-material/Palette';
+import React, { useRef, useState, useEffect } from "react";
+import { Box, IconButton, Tooltip } from "@mui/material";
+import { styled } from "@mui/material/styles";
+import BrushIcon from "@mui/icons-material/Brush";
+import UndoIcon from "@mui/icons-material/Undo";
+import ClearIcon from "@mui/icons-material/Clear";
+import PaletteIcon from "@mui/icons-material/Palette";
 
 const ColorButton = styled(IconButton)(({ theme, color, selected }) => ({
   backgroundColor: color,
   margin: theme.spacing(0.5),
   width: 24,
   height: 24,
-  border: selected ? '2px solid black' : 'none',
-  '&:hover': {
+  border: selected ? "2px solid black" : "none",
+  "&:hover": {
     backgroundColor: color,
     opacity: 0.8,
   },
 }));
 
 const COLORS = [
-  '#FF0000', // Red
-  '#00FF00', // Green
-  '#0000FF', // Blue
-  '#FFFF00', // Yellow
-  '#FF00FF', // Magenta
-  '#00FFFF', // Cyan
+  "#FF0000", // Red
+  "#00FF00", // Green
+  "#0000FF", // Blue
+  "#FFFF00", // Yellow
+  "#FF00FF", // Magenta
+  "#00FFFF", // Cyan
 ];
 
 const BRUSH_SIZES = [2, 4, 6, 8];
@@ -32,12 +32,12 @@ const BRUSH_SIZES = [2, 4, 6, 8];
 /**
  * A canvas component for drawing annotations on images
  */
-const AnnotationCanvas = ({ 
-  width, 
-  height, 
-  imageUrl, 
+const AnnotationCanvas = ({
+  width,
+  height,
+  imageUrl,
   onAnnotationChange,
-  initialAnnotation = null
+  initialAnnotation = null,
 }) => {
   const canvasRef = useRef(null);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -47,27 +47,28 @@ const AnnotationCanvas = ({
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [history, setHistory] = useState([]);
   const [currentStep, setCurrentStep] = useState(-1);
-  
+
   // Initialize canvas
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    
-    const ctx = canvas.getContext('2d');
+
+    const ctx = canvas.getContext("2d");
     setContext(ctx);
-    
-    // Set canvas dimensions
+
+    // Set canvas dimensions to match the image proportion
     canvas.width = width;
     canvas.height = height;
-    
+
     // Clear the canvas
     ctx.clearRect(0, 0, width, height);
-    
+
     // If there's an initial annotation, draw it
     if (initialAnnotation) {
       const annotationImage = new Image();
       annotationImage.src = initialAnnotation;
       annotationImage.onload = () => {
+        // Center the annotation on the canvas
         ctx.drawImage(annotationImage, 0, 0, width, height);
         saveCanvasState();
       };
@@ -75,157 +76,159 @@ const AnnotationCanvas = ({
       saveCanvasState();
     }
   }, [width, height, initialAnnotation]);
-  
+
   // Save current canvas state to history
   const saveCanvasState = () => {
     if (!canvasRef.current || !context) return;
-    
+
     const canvas = canvasRef.current;
-    const imageData = canvas.toDataURL('image/png');
-    
+    const imageData = canvas.toDataURL("image/png");
+
     // If we're in the middle of the history, remove all future states
     if (currentStep < history.length - 1) {
       setHistory(history.slice(0, currentStep + 1));
     }
-    
+
     setHistory([...history, imageData]);
     setCurrentStep(currentStep + 1);
-    
+
     // Notify parent component of the annotation
     if (onAnnotationChange) {
       onAnnotationChange(imageData);
     }
   };
-  
+
   // Start drawing
   const startDrawing = (e) => {
     if (!context) return;
-    
+
     const { offsetX, offsetY } = getCoordinates(e);
-    
+
     context.beginPath();
     context.moveTo(offsetX, offsetY);
     setIsDrawing(true);
   };
-  
+
   // Draw on the canvas
   const draw = (e) => {
     if (!isDrawing || !context) return;
-    
+
     const { offsetX, offsetY } = getCoordinates(e);
-    
+
     context.lineTo(offsetX, offsetY);
     context.strokeStyle = color;
     context.lineWidth = brushSize;
-    context.lineCap = 'round';
-    context.lineJoin = 'round';
+    context.lineCap = "round";
+    context.lineJoin = "round";
     context.stroke();
   };
-  
+
   // Stop drawing
   const stopDrawing = () => {
     if (!isDrawing || !context) return;
-    
+
     context.closePath();
     setIsDrawing(false);
     saveCanvasState();
   };
-  
+
   // Handle touch events
   const handleTouchStart = (e) => {
     e.preventDefault();
     const touch = e.touches[0];
     const mouseEvent = {
       clientX: touch.clientX,
-      clientY: touch.clientY
+      clientY: touch.clientY,
     };
     startDrawing(mouseEvent);
   };
-  
+
   const handleTouchMove = (e) => {
     e.preventDefault();
     const touch = e.touches[0];
     const mouseEvent = {
       clientX: touch.clientX,
-      clientY: touch.clientY
+      clientY: touch.clientY,
     };
     draw(mouseEvent);
   };
-  
+
   // Get coordinates for both mouse and touch events
   const getCoordinates = (e) => {
     const canvas = canvasRef.current;
     const rect = canvas.getBoundingClientRect();
+
+    // Calculate scaling factor between the canvas display size and its internal dimensions
+    // This is critical for correct drawing coordinates when the canvas is scaled
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
-    
+
     return {
       offsetX: (e.clientX - rect.left) * scaleX,
-      offsetY: (e.clientY - rect.top) * scaleY
+      offsetY: (e.clientY - rect.top) * scaleY,
     };
   };
-  
+
   // Undo last action
   const handleUndo = () => {
     if (currentStep <= 0 || !context) return;
-    
+
     const newStep = currentStep - 1;
     setCurrentStep(newStep);
-    
+
     const img = new Image();
     img.src = history[newStep];
     img.onload = () => {
       context.clearRect(0, 0, width, height);
       context.drawImage(img, 0, 0, width, height);
-      
+
       // Notify parent component of the annotation
       if (onAnnotationChange) {
         onAnnotationChange(history[newStep]);
       }
     };
   };
-  
+
   // Clear the canvas
   const handleClear = () => {
     if (!context) return;
-    
+
     context.clearRect(0, 0, width, height);
     saveCanvasState();
   };
-  
+
   // Render the component
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-      <Box sx={{ display: 'flex', mb: 1 }}>
+    <Box
+      sx={{ display: "flex", flexDirection: "column", alignItems: "center" }}
+    >
+      <Box sx={{ display: "flex", mb: 1 }}>
         <Tooltip title="Brush">
-          <IconButton 
-            color="primary" 
-            sx={{ mr: 1 }}
-          >
+          <IconButton color="primary" sx={{ mr: 1 }}>
             <BrushIcon />
           </IconButton>
         </Tooltip>
-        
+
         <Tooltip title="Color">
-          <IconButton 
+          <IconButton
             onClick={() => setShowColorPicker(!showColorPicker)}
-            sx={{ 
-              mr: 1, 
+            sx={{
+              mr: 1,
               backgroundColor: color,
-              '&:hover': {
+              "&:hover": {
                 backgroundColor: color,
                 opacity: 0.8,
-              } 
+              },
             }}
           >
-            <PaletteIcon sx={{ color: '#fff' }} />
+            <PaletteIcon sx={{ color: "#fff" }} />
           </IconButton>
         </Tooltip>
-        
+
         <Tooltip title="Undo">
           <span>
-            <IconButton 
-              onClick={handleUndo} 
+            <IconButton
+              onClick={handleUndo}
               disabled={currentStep <= 0}
               sx={{ mr: 1 }}
             >
@@ -233,44 +236,41 @@ const AnnotationCanvas = ({
             </IconButton>
           </span>
         </Tooltip>
-        
+
         <Tooltip title="Clear">
           <span>
-            <IconButton 
-              onClick={handleClear} 
-              disabled={currentStep <= 0}
-            >
+            <IconButton onClick={handleClear} disabled={currentStep <= 0}>
               <ClearIcon />
             </IconButton>
           </span>
         </Tooltip>
       </Box>
-      
+
       {showColorPicker && (
-        <Box sx={{ display: 'flex', mb: 1 }}>
+        <Box sx={{ display: "flex", mb: 1 }}>
           {COLORS.map((c) => (
-            <ColorButton 
-              key={c} 
-              color={c} 
+            <ColorButton
+              key={c}
+              color={c}
               selected={c === color}
-              onClick={() => setColor(c)} 
+              onClick={() => setColor(c)}
             />
           ))}
         </Box>
       )}
-      
-      <Box sx={{ position: 'relative' }}>
+
+      <Box sx={{ position: "relative" }}>
         <Box
           sx={{
             width: width,
             height: height,
             backgroundImage: `url(${imageUrl})`,
-            backgroundSize: 'contain',
-            backgroundPosition: 'center',
-            backgroundRepeat: 'no-repeat',
-            border: '1px solid #ddd',
+            backgroundSize: "contain",
+            backgroundPosition: "center",
+            backgroundRepeat: "no-repeat",
+            border: "1px solid #ddd",
             borderRadius: 1,
-            position: 'relative'
+            position: "relative",
           }}
         >
           <canvas
@@ -278,12 +278,12 @@ const AnnotationCanvas = ({
             width={width}
             height={height}
             style={{
-              position: 'absolute',
+              position: "absolute",
               top: 0,
               left: 0,
-              width: '100%',
-              height: '100%',
-              cursor: 'crosshair'
+              width: "100%",
+              height: "100%",
+              cursor: "crosshair",
             }}
             onMouseDown={startDrawing}
             onMouseMove={draw}

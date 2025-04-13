@@ -33,7 +33,11 @@ import UploadIcon from "@mui/icons-material/Upload";
 import VersionsIcon from "@mui/icons-material/Collections";
 import BrushIcon from "@mui/icons-material/Brush";
 import ChatIcon from "@mui/icons-material/Chat";
-import { useSelectedFile, useUpdateDeadline, useUploadFileVersion } from "../hooks/files";
+import {
+  useSelectedFile,
+  useUpdateDeadline,
+  useUploadFileVersion,
+} from "../hooks/files";
 import { useTheme } from "@mui/material/styles";
 import { useComments, useCreateComment } from "../hooks/comments";
 import { useSearchParams } from "react-router-dom";
@@ -42,7 +46,7 @@ import { useUser } from "../hooks/users";
 import UserAvatar from "../components/UserAvatar";
 import Loading from "../pages/Loading";
 import { linkifyText } from "../utils/linkify";
-import { useMentions } from '../hooks/mentions';
+import { useMentions } from "../hooks/mentions";
 import MentionSuggestions from "../components/MentionSuggestions";
 import MentionHighlighter from "../components/MentionHighlighter";
 import MentionInput from "../components/MentionInput";
@@ -54,7 +58,7 @@ const ReplyForm = ({ fileId, parentId, onCancel }) => {
   const createComment = useCreateComment({ fileId });
   const [replyText, setReplyText] = useState("");
   const { data: file } = useSelectedFile();
-  
+
   // Use the mentions hook to handle @mentions
   const {
     inputRef,
@@ -62,10 +66,10 @@ const ReplyForm = ({ fileId, parentId, onCancel }) => {
     handleInputChange,
     handleInputKeyDown,
     handleSelectUser,
-    closeMentionSuggestions
-  } = useMentions({ 
+    closeMentionSuggestions,
+  } = useMentions({
     projectId: file?.projectId,
-    onChange: (e) => setReplyText(e.target.value)
+    onChange: (e) => setReplyText(e.target.value),
   });
 
   const handleSubmit = (e) => {
@@ -112,7 +116,7 @@ const ReplyForm = ({ fileId, parentId, onCancel }) => {
         inputRef={inputRef}
         sx={{ mb: 1 }}
       />
-      
+
       {/* Mention suggestions dropdown */}
       <MentionSuggestions
         query={mentionState.mentionQuery}
@@ -121,7 +125,7 @@ const ReplyForm = ({ fileId, parentId, onCancel }) => {
         onClose={closeMentionSuggestions}
         projectId={file?.projectId}
       />
-      
+
       <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 1 }}>
         <Button size="small" onClick={onCancel}>
           Cancel
@@ -146,9 +150,9 @@ const ReplyForm = ({ fileId, parentId, onCancel }) => {
 const CommentThread = ({ commentGroup, fileId }) => {
   const [showReplyForm, setShowReplyForm] = useState(false);
   const [showReplies, setShowReplies] = useState(true); // Default to showing replies
-  
+
   if (!commentGroup || commentGroup.length === 0) return null;
-  
+
   // The first comment in the group is the parent
   const parentComment = commentGroup[0];
   // The rest are replies
@@ -160,16 +164,20 @@ const CommentThread = ({ commentGroup, fileId }) => {
       <Card variant="outlined">
         {/* Parent Comment */}
         <CommentContent comment={parentComment} isParent={true} />
-        
+
         {/* Replies */}
         {showReplies && hasReplies && (
-          <Box sx={{ borderTop: 1, borderColor: 'divider' }}>
+          <Box sx={{ borderTop: 1, borderColor: "divider" }}>
             {replies.map((reply) => (
-              <CommentContent key={reply._id} comment={reply} isParent={false} />
+              <CommentContent
+                key={reply._id}
+                comment={reply}
+                isParent={false}
+              />
             ))}
           </Box>
         )}
-        
+
         {/* Actions */}
         <Box sx={{ px: 2, pb: 1, display: "flex", gap: 1 }}>
           <Button
@@ -211,18 +219,22 @@ const CommentThread = ({ commentGroup, fileId }) => {
 const CommentContent = ({ comment, isParent }) => {
   const { isLoading, data: author } = useUser(comment.authorId);
   const [showAnnotation, setShowAnnotation] = useState(false);
-  
+
   if (isLoading) return null;
-  
+
   // Process the comment body to linkify URLs and highlight mentions
   const processedContent = linkifyText(comment.body);
-  
+
   return (
-    <Box sx={{
-      p: 2,
-      ...(isParent ? {} : { pl: 4, borderTop: '1px solid rgba(0, 0, 0, 0.08)' })
-    }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+    <Box
+      sx={{
+        p: 2,
+        ...(isParent
+          ? {}
+          : { pl: 4, borderTop: "1px solid rgba(0, 0, 0, 0.08)" }),
+      }}
+    >
+      <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
         <UserAvatar userId={author._id} />
         <Box sx={{ ml: 1, flexGrow: 1 }}>
           <Typography variant="subtitle2">{author.email}</Typography>
@@ -230,12 +242,14 @@ const CommentContent = ({ comment, isParent }) => {
             {new Date(comment.createdAt).toLocaleString()}
           </Typography>
         </Box>
-        
+
         {/* Show annotation button if the comment has an annotation */}
         {comment.annotation && (
-          <Tooltip title={showAnnotation ? "Hide annotation" : "Show annotation"}>
-            <IconButton 
-              size="small" 
+          <Tooltip
+            title={showAnnotation ? "Hide annotation" : "Show annotation"}
+          >
+            <IconButton
+              size="small"
               color={showAnnotation ? "secondary" : "default"}
               onClick={() => setShowAnnotation(!showAnnotation)}
             >
@@ -244,60 +258,67 @@ const CommentContent = ({ comment, isParent }) => {
           </Tooltip>
         )}
       </Box>
-      
+
       {/* Display annotation if available and showAnnotation is true */}
       {comment.annotation && showAnnotation && (
-        <Box sx={{ 
-          mb: 2, 
-          mt: 1, 
-          border: '1px solid', 
-          borderColor: 'divider', 
-          borderRadius: 1, 
-          overflow: 'hidden',
-          position: 'relative',
-          backgroundColor: '#f5f5f5'
-        }}>
-          <Box sx={{ 
-            position: 'relative',
-            width: '100%',
-            height: 'auto',
-            minHeight: 200,
-            backgroundImage: `url(${import.meta.env.VITE_BACKEND_ORIGIN}/files/${comment.fileId}/content)`,
-            backgroundSize: 'contain',
-            backgroundPosition: 'center',
-            backgroundRepeat: 'no-repeat'
-          }}>
-            <img 
-              src={comment.annotation} 
-              alt="Annotation" 
-              style={{ 
-                maxWidth: '100%', 
-                display: 'block',
-                position: 'relative',
-                zIndex: 1
-              }} 
+        <Box
+          sx={{
+            mb: 2,
+            mt: 1,
+            border: "1px solid",
+            borderColor: "divider",
+            borderRadius: 1,
+            overflow: "hidden",
+            position: "relative",
+            backgroundColor: "#f5f5f5",
+          }}
+        >
+          <Box
+            sx={{
+              position: "relative",
+              width: "100%",
+              height: "auto",
+              minHeight: 200,
+              backgroundImage: `url(${import.meta.env.VITE_BACKEND_ORIGIN}/files/${comment.fileId}/content)`,
+              backgroundSize: "contain",
+              backgroundPosition: "center",
+              backgroundRepeat: "no-repeat",
+            }}
+          >
+            <img
+              src={comment.annotation}
+              alt="Annotation"
+              style={{
+                width: "100%",
+                height: "100%",
+                position: "absolute",
+                top: 0,
+                left: 0,
+                objectFit: "contain",
+                zIndex: 1,
+              }}
             />
           </Box>
         </Box>
       )}
-      
+
       {/* Use MentionHighlighter for comments with mentions */}
-      {comment.body.includes('@') ? (
+      {comment.body.includes("@") ? (
         <Box>
           {Array.isArray(processedContent) ? (
             <Typography variant="body1">
               {processedContent.map((part, index) => {
-                if (typeof part === 'string') {
+                if (typeof part === "string") {
                   // Use MentionHighlighter for text parts that might contain mentions
                   return <MentionHighlighter key={index} text={part} />;
-                } else if (part.type === 'link') {
+                } else if (part.type === "link") {
                   return (
-                    <Link 
-                      key={part.key} 
-                      href={part.href} 
-                      target="_blank" 
+                    <Link
+                      key={part.key}
+                      href={part.href}
+                      target="_blank"
                       rel="noopener noreferrer"
-                      sx={{ wordBreak: 'break-word' }}
+                      sx={{ wordBreak: "break-word" }}
                     >
                       {part.text}
                     </Link>
@@ -313,28 +334,26 @@ const CommentContent = ({ comment, isParent }) => {
       ) : (
         // Regular comment without mentions
         <Typography variant="body1">
-          {Array.isArray(processedContent) ? (
-            processedContent.map((part, index) => {
-              if (typeof part === 'string') {
-                return <span key={index}>{part}</span>;
-              } else if (part.type === 'link') {
-                return (
-                  <Link 
-                    key={part.key} 
-                    href={part.href} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    sx={{ wordBreak: 'break-word' }}
-                  >
-                    {part.text}
-                  </Link>
-                );
-              }
-              return null;
-            })
-          ) : (
-            processedContent
-          )}
+          {Array.isArray(processedContent)
+            ? processedContent.map((part, index) => {
+                if (typeof part === "string") {
+                  return <span key={index}>{part}</span>;
+                } else if (part.type === "link") {
+                  return (
+                    <Link
+                      key={part.key}
+                      href={part.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      sx={{ wordBreak: "break-word" }}
+                    >
+                      {part.text}
+                    </Link>
+                  );
+                }
+                return null;
+              })
+            : processedContent}
         </Typography>
       )}
     </Box>
@@ -342,19 +361,22 @@ const CommentContent = ({ comment, isParent }) => {
 };
 
 const CommentBar = ({ fileId }) => {
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage } = useComments({ fileId });
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage } = useComments({
+    fileId,
+  });
   const commentContainerRef = useRef(null);
   const [searchParams] = useSearchParams();
-  const commentId = searchParams.get('commentId');
+  const commentId = searchParams.get("commentId");
 
   // Handle infinite scrolling
   useEffect(() => {
     const handleScroll = () => {
       if (!commentContainerRef.current) return;
-      
-      const { scrollTop, scrollHeight, clientHeight } = commentContainerRef.current;
+
+      const { scrollTop, scrollHeight, clientHeight } =
+        commentContainerRef.current;
       const scrolledToBottom = scrollHeight - scrollTop - clientHeight < 50;
-      
+
       if (scrolledToBottom && hasNextPage && !isFetchingNextPage) {
         fetchNextPage();
       }
@@ -362,8 +384,8 @@ const CommentBar = ({ fileId }) => {
 
     const container = commentContainerRef.current;
     if (container) {
-      container.addEventListener('scroll', handleScroll);
-      return () => container.removeEventListener('scroll', handleScroll);
+      container.addEventListener("scroll", handleScroll);
+      return () => container.removeEventListener("scroll", handleScroll);
     }
   }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
@@ -371,19 +393,26 @@ const CommentBar = ({ fileId }) => {
   useEffect(() => {
     if (commentId && data) {
       // Find the comment in all pages
-      const allComments = data.pages.flatMap(page => page.comments.flat());
-      const targetComment = allComments.find(comment => comment._id === commentId);
-      
+      const allComments = data.pages.flatMap((page) => page.comments.flat());
+      const targetComment = allComments.find(
+        (comment) => comment._id === commentId
+      );
+
       if (targetComment) {
         // Find the comment element and scroll to it
         setTimeout(() => {
-          const commentElement = document.getElementById(`comment-${commentId}`);
+          const commentElement = document.getElementById(
+            `comment-${commentId}`
+          );
           if (commentElement) {
-            commentElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            commentElement.style.backgroundColor = '#f0f7ff';
+            commentElement.scrollIntoView({
+              behavior: "smooth",
+              block: "center",
+            });
+            commentElement.style.backgroundColor = "#f0f7ff";
             setTimeout(() => {
-              commentElement.style.transition = 'background-color 1s';
-              commentElement.style.backgroundColor = '';
+              commentElement.style.transition = "background-color 1s";
+              commentElement.style.backgroundColor = "";
             }, 1500);
           }
         }, 300);
@@ -392,7 +421,7 @@ const CommentBar = ({ fileId }) => {
   }, [commentId, data]);
 
   // Extract all comment groups from all pages
-  const commentGroups = data?.pages.flatMap(page => page.comments) || [];
+  const commentGroups = data?.pages.flatMap((page) => page.comments) || [];
   const noComments = commentGroups.length === 0;
 
   return (
@@ -405,20 +434,18 @@ const CommentBar = ({ fileId }) => {
         p: 2,
       }}
     >
-      {noComments && (
-        <Typography variant="body1">No comments yet</Typography>
-      )}
-      
+      {noComments && <Typography variant="body1">No comments yet</Typography>}
+
       {commentGroups.map((commentGroup, index) => (
-        <CommentThread 
-          key={commentGroup[0]?._id || index} 
-          commentGroup={commentGroup} 
-          fileId={fileId} 
+        <CommentThread
+          key={commentGroup[0]?._id || index}
+          commentGroup={commentGroup}
+          fileId={fileId}
         />
       ))}
-      
+
       {isFetchingNextPage && (
-        <Box sx={{ textAlign: 'center', py: 2 }}>
+        <Box sx={{ textAlign: "center", py: 2 }}>
           <Loading size={30} />
         </Box>
       )}
@@ -436,73 +463,83 @@ const ImageViewer = ({ file }) => {
   const [open, setOpen] = useState(false);
   const [clickCoords, setClickCoords] = useState({ x: 0, y: 0 });
   const [, setSearchParams] = useSearchParams();
-  const [commentText, setCommentText] = useState('');
+  const [commentText, setCommentText] = useState("");
   const [tabValue, setTabValue] = useState(0);
   const [annotation, setAnnotation] = useState(null);
   const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
   const [activeAnnotation, setActiveAnnotation] = useState(null);
   const [showAnnotationOverlay, setShowAnnotationOverlay] = useState(false);
-  const [notification, setNotification] = useState({ open: false, message: '' });
-  
+  const [notification, setNotification] = useState({
+    open: false,
+    message: "",
+  });
+
   // Get comments from the API data
   useEffect(() => {
     if (data) {
-      const apiComments = data.pages.flatMap(page => page.comments.flat()) || [];
+      const apiComments =
+        data.pages.flatMap((page) => page.comments.flat()) || [];
       setLocalComments(apiComments);
     }
   }, [data]);
 
   // Connect to Socket.IO for real-time updates
-  const handleNewComment = useCallback((comment) => {
-    // Check if we already have this comment (to avoid duplicates)
-    if (!localComments.some(c => c._id === comment._id)) {
-      // Force a refetch to ensure we have the latest data
-      // This is a backup to ensure UI consistency
-      refetch().catch(err => console.error('Error refetching comments:', err));
-      
-      // Add the new comment to our local state immediately for real-time feedback
-      setLocalComments(prevComments => {
-        // Create a new array with the new comment
-        const updatedComments = [...prevComments, comment];
-        
-        // Show notification with comment content
-        const commentPreview = comment.body.length > 50 
-          ? `${comment.body.substring(0, 50)}...` 
-          : comment.body;
-          
-        setNotification({
-          open: true,
-          message: `${comment.author.email}: "${commentPreview}"`
+  const handleNewComment = useCallback(
+    (comment) => {
+      // Check if we already have this comment (to avoid duplicates)
+      if (!localComments.some((c) => c._id === comment._id)) {
+        // Force a refetch to ensure we have the latest data
+        // This is a backup to ensure UI consistency
+        refetch().catch((err) =>
+          console.error("Error refetching comments:", err)
+        );
+
+        // Add the new comment to our local state immediately for real-time feedback
+        setLocalComments((prevComments) => {
+          // Create a new array with the new comment
+          const updatedComments = [...prevComments, comment];
+
+          // Show notification with comment content
+          const commentPreview =
+            comment.body.length > 50
+              ? `${comment.body.substring(0, 50)}...`
+              : comment.body;
+
+          setNotification({
+            open: true,
+            message: `${comment.author.email}: "${commentPreview}"`,
+          });
+
+          return updatedComments;
         });
-        
-        return updatedComments;
-      });
-      
-      // Update the comment marker on the image
-      // This ensures the new comment marker appears immediately
-      setTimeout(() => {
-        if (markerContainerRef.current) {
-          // Force a re-render of the markers
-          const currentStyle = markerContainerRef.current.style.display;
-          markerContainerRef.current.style.display = 'none';
-          setTimeout(() => {
-            if (markerContainerRef.current) {
-              markerContainerRef.current.style.display = currentStyle;
-            }
-          }, 10);
-        }
-      }, 100);
-    }
-  }, [localComments, refetch]);
+
+        // Update the comment marker on the image
+        // This ensures the new comment marker appears immediately
+        setTimeout(() => {
+          if (markerContainerRef.current) {
+            // Force a re-render of the markers
+            const currentStyle = markerContainerRef.current.style.display;
+            markerContainerRef.current.style.display = "none";
+            setTimeout(() => {
+              if (markerContainerRef.current) {
+                markerContainerRef.current.style.display = currentStyle;
+              }
+            }, 10);
+          }
+        }, 100);
+      }
+    },
+    [localComments, refetch]
+  );
 
   // Use the Socket.IO hook to connect to the file room
   const { isConnected } = useFileSocket(file._id, handleNewComment);
-  
+
   // Monitor socket connection status
   useEffect(() => {
     // This effect is used to track socket connection status changes
   }, [isConnected, file._id]);
-  
+
   // Use the mentions hook to handle @mentions
   const {
     inputRef,
@@ -510,10 +547,10 @@ const ImageViewer = ({ file }) => {
     handleInputChange,
     handleInputKeyDown,
     handleSelectUser,
-    closeMentionSuggestions
-  } = useMentions({ 
+    closeMentionSuggestions,
+  } = useMentions({
     projectId: file.projectId,
-    onChange: (e) => setCommentText(e.target.value)
+    onChange: (e) => setCommentText(e.target.value),
   });
 
   const selectComment = (commentId) => {
@@ -535,55 +572,71 @@ const ImageViewer = ({ file }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!commentText.trim()) return;
-    
+
     const commentData = {
       fileId: file._id,
       body: commentText,
       x: clickCoords.x,
       y: clickCoords.y,
     };
-    
+
     // Add annotation if available
     if (annotation) {
       commentData.annotation = annotation;
     }
-    
-    createComment.mutate(
-      commentData,
-      { 
-        onSuccess: () => {
-          setOpen(false);
-          setCommentText('');
-          setAnnotation(null);
-          setTabValue(0);
-        }
+
+    createComment.mutate(commentData, {
+      onSuccess: () => {
+        setOpen(false);
+        setCommentText("");
+        setAnnotation(null);
+        setTabValue(0);
       },
-    );
+    });
   };
 
-  useEffect(function matchMarkerLayerSizeToImage() {
-    const resizeObserver = new ResizeObserver(() => {
-      if (imageRef.current) {
-        const width = imageRef.current.width;
-        const height = imageRef.current.height;
-        
-        if (markerContainerRef.current) {
-          markerContainerRef.current.style.width = `${width}px`;
-          markerContainerRef.current.style.height = `${height}px`;
-        }
-        
-        setImageSize({ width, height });
-      }
-    });
-    
-    if (imageRef.current) {
-      resizeObserver.observe(imageRef.current);
-    }
+  useEffect(
+    function matchMarkerLayerSizeToImage() {
+      const updateMarkerContainer = () => {
+        if (imageRef.current && markerContainerRef.current) {
+          const rect = imageRef.current.getBoundingClientRect();
+          const containerRect = document
+            .querySelector(".image-container")
+            ?.getBoundingClientRect();
 
-    return () => {
-      resizeObserver.disconnect();
-    };
-  }, [imageRef.current]);
+          if (containerRect) {
+            // Position relative to the container
+            const relativeTop = rect.top - containerRect.top;
+            const relativeLeft = rect.left - containerRect.left;
+
+            markerContainerRef.current.style.width = `${rect.width}px`;
+            markerContainerRef.current.style.height = `${rect.height}px`;
+            markerContainerRef.current.style.top = `${relativeTop}px`;
+            markerContainerRef.current.style.left = `${relativeLeft}px`;
+
+            setImageSize({ width: rect.width, height: rect.height });
+          }
+        }
+      };
+
+      const resizeObserver = new ResizeObserver(updateMarkerContainer);
+
+      if (imageRef.current) {
+        resizeObserver.observe(imageRef.current);
+        // Initial positioning
+        updateMarkerContainer();
+      }
+
+      // Also update on window resize
+      window.addEventListener("resize", updateMarkerContainer);
+
+      return () => {
+        resizeObserver.disconnect();
+        window.removeEventListener("resize", updateMarkerContainer);
+      };
+    },
+    [imageRef.current]
+  );
 
   // Close notification
   const handleCloseNotification = () => {
@@ -592,36 +645,42 @@ const ImageViewer = ({ file }) => {
 
   return (
     <Box
+      className="image-container"
       sx={{
         flexGrow: 1,
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
         position: "relative",
+        overflow: "hidden",
       }}
     >
       {/* Notification for new comments */}
-      <Snackbar 
-        open={notification.open} 
-        autoHideDuration={6000} 
+      <Snackbar
+        open={notification.open}
+        autoHideDuration={6000}
         onClose={handleCloseNotification}
-        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+        anchorOrigin={{ vertical: "top", horizontal: "right" }}
       >
-        <Alert 
-          onClose={handleCloseNotification} 
-          severity="info" 
+        <Alert
+          onClose={handleCloseNotification}
+          severity="info"
           variant="filled"
-          sx={{ 
-            width: '100%', 
-            maxWidth: '400px',
-            '& .MuiAlert-message': {
-              overflow: 'hidden',
-              textOverflow: 'ellipsis'
-            }
+          sx={{
+            width: "100%",
+            maxWidth: "400px",
+            "& .MuiAlert-message": {
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            },
           }}
           icon={<ChatIcon />}
         >
-          <Typography variant="subtitle2" component="div" sx={{ fontWeight: 'bold' }}>
+          <Typography
+            variant="subtitle2"
+            component="div"
+            sx={{ fontWeight: "bold" }}
+          >
             New Comment
           </Typography>
           <Typography variant="body2" component="div">
@@ -648,41 +707,49 @@ const ImageViewer = ({ file }) => {
         ref={markerContainerRef}
         sx={{
           position: "absolute",
-          mx: "auto",
+          top: 0,
+          left: 0,
           width: imageRef.current?.width ?? "100%",
           height: imageRef.current?.height ?? "100%",
           pointerEvents: "none",
+          zIndex: 1,
         }}
       >
         {/* Annotation overlay */}
         {showAnnotationOverlay && activeAnnotation && (
           <Box
             sx={{
-              position: 'absolute',
+              position: "absolute",
               top: 0,
               left: 0,
-              width: '100%',
-              height: '100%',
+              right: 0,
+              bottom: 0,
+              width: "100%",
+              height: "100%",
               zIndex: 1,
-              pointerEvents: 'none',
+              pointerEvents: "none",
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
             }}
           >
             <img
               src={activeAnnotation}
               alt="Annotation"
               style={{
-                width: '100%',
-                height: '100%',
-                objectFit: 'contain',
-                pointerEvents: 'none',
+                position: "absolute",
+                width: "100%",
+                height: "100%",
+                objectFit: "contain",
+                pointerEvents: "none",
               }}
             />
           </Box>
         )}
-        
+
         {localComments.map((comment) => (
-          <Tooltip 
-            key={comment._id} 
+          <Tooltip
+            key={comment._id}
             title={comment.annotation ? "Comment with annotation" : "Comment"}
             arrow
           >
@@ -695,8 +762,8 @@ const ImageViewer = ({ file }) => {
                 width: 20,
                 height: 20,
                 borderRadius: "50%",
-                backgroundColor: comment.annotation 
-                  ? theme.palette.secondary.light 
+                backgroundColor: comment.annotation
+                  ? theme.palette.secondary.light
                   : theme.palette.primary.light,
                 border: "2px solid white",
                 boxShadow: 1,
@@ -725,8 +792,8 @@ const ImageViewer = ({ file }) => {
           </Tooltip>
         ))}
       </Box>
-      <Dialog 
-        open={open} 
+      <Dialog
+        open={open}
         onClose={() => {
           setOpen(false);
           closeMentionSuggestions();
@@ -740,21 +807,21 @@ const ImageViewer = ({ file }) => {
             <IconButton
               aria-label="close"
               onClick={() => setOpen(false)}
-              sx={{ position: 'absolute', right: 8, top: 8 }}
+              sx={{ position: "absolute", right: 8, top: 8 }}
             >
               <CloseIcon />
             </IconButton>
           </DialogTitle>
-          
+
           <Tabs
             value={tabValue}
             onChange={(e, newValue) => setTabValue(newValue)}
-            sx={{ borderBottom: 1, borderColor: 'divider' }}
+            sx={{ borderBottom: 1, borderColor: "divider" }}
           >
             <Tab icon={<ChatIcon />} label="Comment" />
             <Tab icon={<BrushIcon />} label="Annotate" />
           </Tabs>
-          
+
           <DialogContent>
             {tabValue === 0 ? (
               <>
@@ -782,7 +849,7 @@ const ImageViewer = ({ file }) => {
                   inputRef={inputRef}
                   placeholder="Write a comment... (Use @ to mention users)"
                 />
-                
+
                 {/* Mention suggestions dropdown */}
                 <MentionSuggestions
                   query={mentionState.mentionQuery}
@@ -802,27 +869,43 @@ const ImageViewer = ({ file }) => {
                     onAnnotationChange={setAnnotation}
                   />
                 )}
-                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-                  Use the drawing tools to annotate the image. Your annotations will be saved with your comment.
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ display: "block", mt: 1 }}
+                >
+                  Use the drawing tools to annotate the image. Your annotations
+                  will be saved with your comment.
                 </Typography>
               </Box>
             )}
-            
+
             {annotation && tabValue === 0 && (
-              <Box sx={{ mt: 2, p: 1, border: '1px dashed', borderColor: 'primary.main', borderRadius: 1 }}>
+              <Box
+                sx={{
+                  mt: 2,
+                  p: 1,
+                  border: "1px dashed",
+                  borderColor: "primary.main",
+                  borderRadius: 1,
+                }}
+              >
                 <Typography variant="body2" color="primary" gutterBottom>
-                  <BrushIcon fontSize="small" sx={{ verticalAlign: 'middle', mr: 0.5 }} />
+                  <BrushIcon
+                    fontSize="small"
+                    sx={{ verticalAlign: "middle", mr: 0.5 }}
+                  />
                   Annotation attached
                 </Typography>
-                <Button 
-                  size="small" 
+                <Button
+                  size="small"
                   onClick={() => setTabValue(1)}
                   color="primary"
                 >
                   Edit Annotation
                 </Button>
-                <Button 
-                  size="small" 
+                <Button
+                  size="small"
                   onClick={() => setAnnotation(null)}
                   color="error"
                   sx={{ ml: 1 }}
@@ -831,7 +914,7 @@ const ImageViewer = ({ file }) => {
                 </Button>
               </Box>
             )}
-            
+
             {createComment.isError && (
               <Typography color="error">
                 {createComment.error.message}
@@ -840,9 +923,9 @@ const ImageViewer = ({ file }) => {
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setOpen(false)}>Cancel</Button>
-            <Button 
-              type="submit" 
-              variant="contained" 
+            <Button
+              type="submit"
+              variant="contained"
               color="primary"
               disabled={!commentText.trim()}
             >
@@ -858,32 +941,36 @@ const ImageViewer = ({ file }) => {
 // Deadline management dialog component
 const DeadlineDialog = ({ file, onClose, open }) => {
   // Initialize with existing deadline or current date/time + 1 day
-  const initialDate = file.deadline ? new Date(file.deadline) : new Date(Date.now() + 24 * 60 * 60 * 1000);
-  
+  const initialDate = file.deadline
+    ? new Date(file.deadline)
+    : new Date(Date.now() + 24 * 60 * 60 * 1000);
+
   const [deadlineDate, setDeadlineDate] = useState(
-    initialDate.toISOString().split('T')[0]
+    initialDate.toISOString().split("T")[0]
   );
   const [deadlineTime, setDeadlineTime] = useState(
     initialDate.toTimeString().slice(0, 5) // Format: HH:MM
   );
-  
+
   const updateDeadline = useUpdateDeadline();
-  
+
   // Calculate minimum date (today) for the deadline picker
   const today = new Date();
-  const minDate = today.toISOString().split('T')[0];
+  const minDate = today.toISOString().split("T")[0];
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
+
     // Combine date and time
-    const combinedDeadline = deadlineDate && deadlineTime ? 
-      new Date(`${deadlineDate}T${deadlineTime}:00`) : null;
-    
+    const combinedDeadline =
+      deadlineDate && deadlineTime
+        ? new Date(`${deadlineDate}T${deadlineTime}:00`)
+        : null;
+
     updateDeadline.mutate(
-      { 
-        fileId: file._id, 
-        deadline: combinedDeadline
+      {
+        fileId: file._id,
+        deadline: combinedDeadline,
       },
       {
         onSuccess: () => {
@@ -895,9 +982,9 @@ const DeadlineDialog = ({ file, onClose, open }) => {
 
   const handleRemoveDeadline = () => {
     updateDeadline.mutate(
-      { 
-        fileId: file._id, 
-        deadline: null 
+      {
+        fileId: file._id,
+        deadline: null,
       },
       {
         onSuccess: () => {
@@ -934,22 +1021,20 @@ const DeadlineDialog = ({ file, onClose, open }) => {
             sx={{ mb: 2 }}
           />
           {file.deadline && (
-            <Button 
-              onClick={handleRemoveDeadline}
-              color="error"
-              sx={{ mt: 1 }}
-            >
+            <Button onClick={handleRemoveDeadline} color="error" sx={{ mt: 1 }}>
               Remove Deadline
             </Button>
           )}
           {updateDeadline.isError && (
-            <Typography color="error">{updateDeadline.error.message}</Typography>
+            <Typography color="error">
+              {updateDeadline.error.message}
+            </Typography>
           )}
         </DialogContent>
         <DialogActions>
           <Button onClick={onClose}>Cancel</Button>
-          <Button 
-            type="submit" 
+          <Button
+            type="submit"
             variant="contained"
             disabled={updateDeadline.isPending}
           >
@@ -977,9 +1062,9 @@ const UploadVersionDialog = ({ file, onClose, open }) => {
     if (!newFile) return;
 
     uploadVersion.mutate(
-      { 
-        fileId: file._id, 
-        file: newFile 
+      {
+        fileId: file._id,
+        file: newFile,
       },
       {
         onSuccess: () => {
@@ -998,7 +1083,7 @@ const UploadVersionDialog = ({ file, onClose, open }) => {
           <Typography variant="body2" sx={{ mb: 2 }}>
             Upload a new version of "{file.name}" to address reviewer comments.
           </Typography>
-          
+
           <Button
             fullWidth
             variant={!newFile ? "contained" : "text"}
@@ -1015,22 +1100,22 @@ const UploadVersionDialog = ({ file, onClose, open }) => {
               required
             />
           </Button>
-          
+
           {newFile && (
             <Typography variant="body2" sx={{ mb: 2 }}>
               Selected file: {newFile.name}
             </Typography>
           )}
-          
+
           {uploadVersion.isError && (
             <Typography color="error">{uploadVersion.error.message}</Typography>
           )}
         </DialogContent>
         <DialogActions>
           <Button onClick={onClose}>Cancel</Button>
-          <Button 
-            type="submit" 
-            variant="contained" 
+          <Button
+            type="submit"
+            variant="contained"
             disabled={!newFile || uploadVersion.isPending}
           >
             {uploadVersion.isPending ? "Uploading..." : "Upload New Version"}
@@ -1044,21 +1129,23 @@ const UploadVersionDialog = ({ file, onClose, open }) => {
 // File header component with deadline and version information
 const FileHeader = ({ file }) => {
   const theme = useTheme();
-  const { data: { userId } } = useSession();
+  const {
+    data: { userId },
+  } = useSession();
   const isOwner = file.authorId === userId;
-  
+
   const [anchorEl, setAnchorEl] = useState(null);
   const [showDeadlineDialog, setShowDeadlineDialog] = useState(false);
   const [showUploadVersionDialog, setShowUploadVersionDialog] = useState(false);
-  
+
   const handleMenuOpen = (event) => {
     setAnchorEl(event.currentTarget);
   };
-  
+
   const handleMenuClose = () => {
     setAnchorEl(null);
   };
-  
+
   const handleSetDeadline = () => {
     handleMenuClose();
     setShowDeadlineDialog(true);
@@ -1068,62 +1155,66 @@ const FileHeader = ({ file }) => {
     handleMenuClose();
     setShowUploadVersionDialog(true);
   };
-  
+
   // Format deadline for display
   const formatDeadline = () => {
     if (!file.deadline) return null;
-    
+
     const deadlineDate = new Date(file.deadline);
     const now = new Date();
     const isPast = deadlineDate < now;
-    
+
     // Format with both date and time
-    const dateOptions = { year: 'numeric', month: 'short', day: 'numeric' };
-    const timeOptions = { hour: '2-digit', minute: '2-digit' };
-    
+    const dateOptions = { year: "numeric", month: "short", day: "numeric" };
+    const timeOptions = { hour: "2-digit", minute: "2-digit" };
+
     return {
       text: `${deadlineDate.toLocaleDateString(undefined, dateOptions)} at ${deadlineDate.toLocaleTimeString(undefined, timeOptions)}`,
-      isPast
+      isPast,
     };
   };
-  
+
   const deadlineInfo = formatDeadline();
-  
+
   return (
-    <Box sx={{ 
-      display: "flex", 
-      alignItems: "center", 
-      justifyContent: "space-between",
-      px: 2,
-      py: 1,
-      borderBottom: 1,
-      borderColor: "divider",
-      bgcolor: "background.paper"
-    }}>
+    <Box
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        px: 2,
+        py: 1,
+        borderBottom: 1,
+        borderColor: "divider",
+        bgcolor: "background.paper",
+      }}
+    >
       <Box sx={{ display: "flex", alignItems: "center" }}>
-        <Typography variant="h6" sx={{ mr: 2 }}>{file.name}</Typography>
-        
+        <Typography variant="h6" sx={{ mr: 2 }}>
+          {file.name}
+        </Typography>
+
         {file.version && (
-          <Chip 
-            icon={<VersionsIcon />} 
-            label={`v${file.version}`} 
-            color="primary" 
-            size="small" 
+          <Chip
+            icon={<VersionsIcon />}
+            label={`v${file.version}`}
+            color="primary"
+            size="small"
             sx={{ mr: 1 }}
           />
         )}
-        
+
         {deadlineInfo && (
-          <Chip 
-            icon={<AccessTimeIcon />} 
-            label={`Deadline: ${deadlineInfo.text}`} 
-            color={deadlineInfo.isPast ? "error" : "default"} 
-            size="small" 
+          <Chip
+            icon={<AccessTimeIcon />}
+            label={`Deadline: ${deadlineInfo.text}`}
+            color={deadlineInfo.isPast ? "error" : "default"}
+            size="small"
             sx={{ mr: 1 }}
           />
         )}
       </Box>
-      
+
       <Box>
         <IconButton onClick={handleMenuOpen}>
           <MoreVertIcon />
@@ -1133,22 +1224,20 @@ const FileHeader = ({ file }) => {
           open={Boolean(anchorEl)}
           onClose={handleMenuClose}
         >
-          <MenuItem onClick={handleUploadVersion}>
-            Upload New Version
-          </MenuItem>
+          <MenuItem onClick={handleUploadVersion}>Upload New Version</MenuItem>
           {isOwner && (
             <MenuItem onClick={handleSetDeadline}>
               {file.deadline ? "Update Deadline" : "Set Deadline"}
             </MenuItem>
           )}
         </Menu>
-        
-        <DeadlineDialog 
-          file={file} 
-          open={showDeadlineDialog} 
-          onClose={() => setShowDeadlineDialog(false)} 
+
+        <DeadlineDialog
+          file={file}
+          open={showDeadlineDialog}
+          onClose={() => setShowDeadlineDialog(false)}
         />
-        
+
         <UploadVersionDialog
           file={file}
           open={showUploadVersionDialog}
