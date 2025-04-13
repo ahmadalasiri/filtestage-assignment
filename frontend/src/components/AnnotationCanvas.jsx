@@ -40,6 +40,7 @@ const AnnotationCanvas = ({
   initialAnnotation = null,
 }) => {
   const canvasRef = useRef(null);
+  const imageRef = useRef(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [context, setContext] = useState(null);
   const [color, setColor] = useState(COLORS[0]);
@@ -47,35 +48,72 @@ const AnnotationCanvas = ({
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [history, setHistory] = useState([]);
   const [currentStep, setCurrentStep] = useState(-1);
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageDimensions, setImageDimensions] = useState({
+    width: 0,
+    height: 0,
+  });
+
+  // Load the actual image to determine its proper dimensions
+  useEffect(() => {
+    if (!imageUrl) return;
+
+    const img = new Image();
+    img.onload = () => {
+      // Get actual image dimensions
+      const aspectRatio = img.width / img.height;
+
+      // Determine canvas size while maintaining aspect ratio
+      let canvasWidth = width;
+      let canvasHeight = height;
+
+      // Adjust dimensions to maintain aspect ratio
+      if (width / height > aspectRatio) {
+        // Container is wider than image
+        canvasWidth = height * aspectRatio;
+      } else {
+        // Container is taller than image
+        canvasHeight = width / aspectRatio;
+      }
+
+      setImageDimensions({
+        width: canvasWidth,
+        height: canvasHeight,
+      });
+      setImageLoaded(true);
+    };
+    img.src = imageUrl;
+    imageRef.current = img;
+  }, [imageUrl, width, height]);
 
   // Initialize canvas
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvasRef.current || !imageLoaded) return;
 
+    const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
     setContext(ctx);
 
     // Set canvas dimensions to match the image proportion
-    canvas.width = width;
-    canvas.height = height;
+    canvas.width = imageDimensions.width;
+    canvas.height = imageDimensions.height;
 
     // Clear the canvas
-    ctx.clearRect(0, 0, width, height);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     // If there's an initial annotation, draw it
     if (initialAnnotation) {
       const annotationImage = new Image();
       annotationImage.src = initialAnnotation;
       annotationImage.onload = () => {
-        // Center the annotation on the canvas
-        ctx.drawImage(annotationImage, 0, 0, width, height);
+        // Draw the annotation to match the canvas size
+        ctx.drawImage(annotationImage, 0, 0, canvas.width, canvas.height);
         saveCanvasState();
       };
     } else {
       saveCanvasState();
     }
-  }, [width, height, initialAnnotation]);
+  }, [imageLoaded, imageDimensions, initialAnnotation]);
 
   // Save current canvas state to history
   const saveCanvasState = () => {
@@ -159,7 +197,6 @@ const AnnotationCanvas = ({
     const rect = canvas.getBoundingClientRect();
 
     // Calculate scaling factor between the canvas display size and its internal dimensions
-    // This is critical for correct drawing coordinates when the canvas is scaled
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
 
@@ -259,42 +296,42 @@ const AnnotationCanvas = ({
         </Box>
       )}
 
-      <Box sx={{ position: "relative" }}>
-        <Box
-          sx={{
-            width: width,
-            height: height,
-            backgroundImage: `url(${imageUrl})`,
-            backgroundSize: "contain",
-            backgroundPosition: "center",
-            backgroundRepeat: "no-repeat",
-            border: "1px solid #ddd",
-            borderRadius: 1,
-            position: "relative",
-          }}
-        >
-          <canvas
-            ref={canvasRef}
-            width={width}
-            height={height}
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              width: "100%",
-              height: "100%",
-              cursor: "crosshair",
+      {imageLoaded && (
+        <Box sx={{ position: "relative" }}>
+          <Box
+            sx={{
+              width: imageDimensions.width,
+              height: imageDimensions.height,
+              backgroundImage: `url(${imageUrl})`,
+              backgroundSize: "contain",
+              backgroundPosition: "center",
+              backgroundRepeat: "no-repeat",
+              border: "1px solid #ddd",
+              borderRadius: 1,
+              position: "relative",
             }}
-            onMouseDown={startDrawing}
-            onMouseMove={draw}
-            onMouseUp={stopDrawing}
-            onMouseLeave={stopDrawing}
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={stopDrawing}
-          />
+          >
+            <canvas
+              ref={canvasRef}
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                height: "100%",
+                cursor: "crosshair",
+              }}
+              onMouseDown={startDrawing}
+              onMouseMove={draw}
+              onMouseUp={stopDrawing}
+              onMouseLeave={stopDrawing}
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={stopDrawing}
+            />
+          </Box>
         </Box>
-      </Box>
+      )}
     </Box>
   );
 };

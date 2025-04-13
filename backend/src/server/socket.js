@@ -1,4 +1,4 @@
-import { Server as SocketServer } from 'socket.io';
+import { Server as SocketServer } from "socket.io";
 import { env } from "../config/validateEnv.js";
 
 let io;
@@ -12,10 +12,10 @@ export const initializeSocket = (server) => {
   io = new SocketServer(server, {
     cors: {
       origin: env.FRONTEND_ORIGIN,
-      methods: ['GET', 'POST'],
+      methods: ["GET", "POST"],
       credentials: true,
     },
-    transports: ['websocket', 'polling'],
+    transports: ["websocket", "polling"],
   });
 
   // We'll use a simpler approach for authentication
@@ -27,28 +27,28 @@ export const initializeSocket = (server) => {
       socket.data.authenticated = true;
       next();
     } catch (error) {
-      console.error('Socket authentication error:', error);
-      return next(new Error('Authentication failed'));
+      console.error("Socket authentication error:", error);
+      return next(new Error("Authentication failed"));
     }
   });
 
-  io.on('connection', socket => {
-    console.log('Client connected:', socket.id);
+  io.on("connection", (socket) => {
+    console.log("Client connected:", socket.id);
 
     // Join room for specific file
-    socket.on('join-file-room', (fileId) => {
+    socket.on("join-file-room", (fileId) => {
       console.log(`Socket ${socket.id} joining room for file: ${fileId}`);
       socket.join(`file-${fileId}`);
     });
 
     // Leave file room
-    socket.on('leave-file-room', (fileId) => {
+    socket.on("leave-file-room", (fileId) => {
       console.log(`Socket ${socket.id} leaving room for file: ${fileId}`);
       socket.leave(`file-${fileId}`);
     });
 
-    socket.on('disconnect', () => {
-      console.log('Client disconnected:', socket.id);
+    socket.on("disconnect", () => {
+      console.log("Client disconnected:", socket.id);
     });
   });
 
@@ -61,7 +61,7 @@ export const initializeSocket = (server) => {
  */
 export const getSocketIO = () => {
   if (!io) {
-    throw new Error('Socket.IO not initialized');
+    throw new Error("Socket.IO not initialized");
   }
   return io;
 };

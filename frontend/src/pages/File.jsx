@@ -453,18 +453,16 @@ const CommentBar = ({ fileId }) => {
   );
 };
 
-const ImageViewer = ({ file }) => {
+const ImageViewer = ({ file, isAnnotationMode, setIsAnnotationMode }) => {
   const theme = useTheme();
   const { data, refetch } = useComments({ fileId: file._id });
   const [localComments, setLocalComments] = useState([]);
   const createComment = useCreateComment({ fileId: file._id });
   const imageRef = useRef(null);
   const markerContainerRef = useRef(null);
-  const [open, setOpen] = useState(false);
   const [clickCoords, setClickCoords] = useState({ x: 0, y: 0 });
   const [, setSearchParams] = useSearchParams();
   const [commentText, setCommentText] = useState("");
-  const [tabValue, setTabValue] = useState(0);
   const [annotation, setAnnotation] = useState(null);
   const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
   const [activeAnnotation, setActiveAnnotation] = useState(null);
@@ -473,6 +471,10 @@ const ImageViewer = ({ file }) => {
     open: false,
     message: "",
   });
+
+  // Use the passed annotation mode state instead of local state
+  const [pendingComment, setPendingComment] = useState(false);
+  const canvasContainerRef = useRef(null);
 
   // Get comments from the API data
   useEffect(() => {
@@ -489,7 +491,6 @@ const ImageViewer = ({ file }) => {
       // Check if we already have this comment (to avoid duplicates)
       if (!localComments.some((c) => c._id === comment._id)) {
         // Force a refetch to ensure we have the latest data
-        // This is a backup to ensure UI consistency
         refetch().catch((err) =>
           console.error("Error refetching comments:", err)
         );
@@ -514,7 +515,6 @@ const ImageViewer = ({ file }) => {
         });
 
         // Update the comment marker on the image
-        // This ensures the new comment marker appears immediately
         setTimeout(() => {
           if (markerContainerRef.current) {
             // Force a re-render of the markers
@@ -535,11 +535,6 @@ const ImageViewer = ({ file }) => {
   // Use the Socket.IO hook to connect to the file room
   const { isConnected } = useFileSocket(file._id, handleNewComment);
 
-  // Monitor socket connection status
-  useEffect(() => {
-    // This effect is used to track socket connection status changes
-  }, [isConnected, file._id]);
-
   // Use the mentions hook to handle @mentions
   const {
     inputRef,
@@ -558,6 +553,11 @@ const ImageViewer = ({ file }) => {
   };
 
   const handleImageClick = (e) => {
+    if (isAnnotationMode) {
+      // In annotation mode, clicks are handled by the canvas
+      return;
+    }
+
     const rect = imageRef.current.getBoundingClientRect();
     const clickX = e.clientX - rect.left;
     const clickY = e.clientY - rect.top;
@@ -566,11 +566,11 @@ const ImageViewer = ({ file }) => {
     const yPercent = (clickY / rect.height) * 100;
 
     setClickCoords({ x: xPercent, y: yPercent });
-    setOpen(true);
+    setPendingComment(true);
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  const handleSubmitComment = (e) => {
+    e?.preventDefault();
     if (!commentText.trim()) return;
 
     const commentData = {
@@ -587,12 +587,33 @@ const ImageViewer = ({ file }) => {
 
     createComment.mutate(commentData, {
       onSuccess: () => {
-        setOpen(false);
+        setPendingComment(false);
         setCommentText("");
         setAnnotation(null);
-        setTabValue(0);
+        // Turn off annotation mode after submitting
+        setIsAnnotationMode(false);
       },
     });
+  };
+
+  const cancelComment = () => {
+    setPendingComment(false);
+    setCommentText("");
+    setAnnotation(null);
+  };
+
+  // Toggle annotation mode (now uses the passed setter)
+  const toggleAnnotationMode = () => {
+    setIsAnnotationMode(!isAnnotationMode);
+    if (isAnnotationMode) {
+      // If turning off annotation mode with an annotation, ask to submit comment
+      if (annotation && !pendingComment) {
+        setPendingComment(true);
+      }
+    } else {
+      // Clear any existing annotation when entering annotation mode
+      setAnnotation(null);
+    }
   };
 
   useEffect(
@@ -613,6 +634,14 @@ const ImageViewer = ({ file }) => {
             markerContainerRef.current.style.height = `${rect.height}px`;
             markerContainerRef.current.style.top = `${relativeTop}px`;
             markerContainerRef.current.style.left = `${relativeLeft}px`;
+
+            // Update canvas container too if it exists
+            if (canvasContainerRef.current) {
+              canvasContainerRef.current.style.width = `${rect.width}px`;
+              canvasContainerRef.current.style.height = `${rect.height}px`;
+              canvasContainerRef.current.style.top = `${relativeTop}px`;
+              canvasContainerRef.current.style.left = `${relativeLeft}px`;
+            }
 
             setImageSize({ width: rect.width, height: rect.height });
           }
@@ -688,7 +717,48 @@ const ImageViewer = ({ file }) => {
           </Typography>
         </Alert>
       </Snackbar>
-      <Tooltip title="Click to leave a comment" arrow>
+
+      {/* Annotation Mode Indicator */}
+      {isAnnotationMode && (
+        <Box
+          sx={{
+            position: "absolute",
+            top: 10,
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 10,
+            backgroundColor: "rgba(0, 0, 0, 0.7)",
+            color: "white",
+            padding: "8px 16px",
+            borderRadius: 2,
+            display: "flex",
+            alignItems: "center",
+            gap: 1,
+          }}
+        >
+          <BrushIcon />
+          <Typography variant="body2">
+            Annotation Mode - Draw on the image
+          </Typography>
+          <Button
+            size="small"
+            variant="outlined"
+            color="inherit"
+            onClick={toggleAnnotationMode}
+            sx={{ ml: 2 }}
+          >
+            Exit
+          </Button>
+        </Box>
+      )}
+
+      {/* Main Image */}
+      <Tooltip
+        title={
+          isAnnotationMode ? "Draw on the image" : "Click to leave a comment"
+        }
+        arrow
+      >
         <img
           ref={imageRef}
           src={`${import.meta.env.VITE_BACKEND_ORIGIN}/files/${file._id}/content`}
@@ -698,10 +768,38 @@ const ImageViewer = ({ file }) => {
             maxWidth: "100%",
             maxHeight: "100%",
             objectFit: "contain",
-            cursor: "pointer",
+            cursor: isAnnotationMode ? "crosshair" : "pointer",
           }}
         />
       </Tooltip>
+
+      {/* Annotation Canvas Layer */}
+      {isAnnotationMode && (
+        <Box
+          ref={canvasContainerRef}
+          sx={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 3,
+            pointerEvents: "auto",
+          }}
+        >
+          <AnnotationCanvas
+            width={imageSize.width}
+            height={imageSize.height}
+            imageUrl={`${import.meta.env.VITE_BACKEND_ORIGIN}/files/${file._id}/content`}
+            onAnnotationChange={setAnnotation}
+          />
+        </Box>
+      )}
+
+      {/* Comment Markers Layer */}
       <Box
         id="markers-container"
         ref={markerContainerRef}
@@ -712,7 +810,7 @@ const ImageViewer = ({ file }) => {
           width: imageRef.current?.width ?? "100%",
           height: imageRef.current?.height ?? "100%",
           pointerEvents: "none",
-          zIndex: 1,
+          zIndex: isAnnotationMode ? 2 : 1,
         }}
       >
         {/* Annotation overlay */}
@@ -747,193 +845,149 @@ const ImageViewer = ({ file }) => {
           </Box>
         )}
 
-        {localComments.map((comment) => (
-          <Tooltip
-            key={comment._id}
-            title={comment.annotation ? "Comment with annotation" : "Comment"}
-            arrow
-          >
-            <Box
-              sx={{
-                position: "absolute",
-                left: `${comment.x}%`,
-                top: `${comment.y}%`,
-                transform: "translate(-50%, -50%)",
-                width: 20,
-                height: 20,
-                borderRadius: "50%",
-                backgroundColor: comment.annotation
-                  ? theme.palette.secondary.light
-                  : theme.palette.primary.light,
-                border: "2px solid white",
-                boxShadow: 1,
-                cursor: "pointer",
-                pointerEvents: "auto",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                zIndex: 2,
-              }}
-              onClick={() => selectComment(comment._id)}
-              onMouseEnter={() => {
-                if (comment.annotation) {
-                  setActiveAnnotation(comment.annotation);
-                  setShowAnnotationOverlay(true);
-                }
-              }}
-              onMouseLeave={() => {
-                setShowAnnotationOverlay(false);
-              }}
+        {/* Comment Markers */}
+        {!isAnnotationMode &&
+          localComments.map((comment) => (
+            <Tooltip
+              key={comment._id}
+              title={comment.annotation ? "Comment with annotation" : "Comment"}
+              arrow
             >
-              {comment.annotation && (
-                <BrushIcon sx={{ fontSize: 12, color: "white" }} />
-              )}
-            </Box>
-          </Tooltip>
-        ))}
-      </Box>
-      <Dialog
-        open={open}
-        onClose={() => {
-          setOpen(false);
-          closeMentionSuggestions();
-        }}
-        maxWidth="md"
-        fullWidth
-      >
-        <Box component="form" onSubmit={handleSubmit}>
-          <DialogTitle>
-            Add a Comment
-            <IconButton
-              aria-label="close"
-              onClick={() => setOpen(false)}
-              sx={{ position: "absolute", right: 8, top: 8 }}
-            >
-              <CloseIcon />
-            </IconButton>
-          </DialogTitle>
-
-          <Tabs
-            value={tabValue}
-            onChange={(e, newValue) => setTabValue(newValue)}
-            sx={{ borderBottom: 1, borderColor: "divider" }}
-          >
-            <Tab icon={<ChatIcon />} label="Comment" />
-            <Tab icon={<BrushIcon />} label="Annotate" />
-          </Tabs>
-
-          <DialogContent>
-            {tabValue === 0 ? (
-              <>
-                <MentionInput
-                  autoFocus
-                  margin="dense"
-                  label="Comment"
-                  name="body"
-                  fullWidth
-                  multiline
-                  rows={4}
-                  required
-                  value={commentText}
-                  onChange={(e) => {
-                    // Check if the value was set by the mention selection
-                    if (e.target._mentionValue) {
-                      setCommentText(e.target._mentionValue);
-                      delete e.target._mentionValue;
-                    } else {
-                      setCommentText(e.target.value);
-                    }
-                    handleInputChange(e);
-                  }}
-                  onKeyDown={handleInputKeyDown}
-                  inputRef={inputRef}
-                  placeholder="Write a comment... (Use @ to mention users)"
-                />
-
-                {/* Mention suggestions dropdown */}
-                <MentionSuggestions
-                  query={mentionState.mentionQuery}
-                  anchorEl={mentionState.mentionAnchorEl}
-                  onSelect={handleSelectUser}
-                  onClose={closeMentionSuggestions}
-                  projectId={file.projectId}
-                />
-              </>
-            ) : (
-              <Box sx={{ mt: 2 }}>
-                {imageSize.width > 0 && (
-                  <AnnotationCanvas
-                    width={Math.min(imageSize.width, 800)}
-                    height={Math.min(imageSize.height, 600)}
-                    imageUrl={`${import.meta.env.VITE_BACKEND_ORIGIN}/files/${file._id}/content`}
-                    onAnnotationChange={setAnnotation}
-                  />
-                )}
-                <Typography
-                  variant="caption"
-                  color="text.secondary"
-                  sx={{ display: "block", mt: 1 }}
-                >
-                  Use the drawing tools to annotate the image. Your annotations
-                  will be saved with your comment.
-                </Typography>
-              </Box>
-            )}
-
-            {annotation && tabValue === 0 && (
               <Box
                 sx={{
-                  mt: 2,
-                  p: 1,
-                  border: "1px dashed",
-                  borderColor: "primary.main",
-                  borderRadius: 1,
+                  position: "absolute",
+                  left: `${comment.x}%`,
+                  top: `${comment.y}%`,
+                  transform: "translate(-50%, -50%)",
+                  width: 20,
+                  height: 20,
+                  borderRadius: "50%",
+                  backgroundColor: comment.annotation
+                    ? theme.palette.secondary.light
+                    : theme.palette.primary.light,
+                  border: "2px solid white",
+                  boxShadow: 1,
+                  cursor: "pointer",
+                  pointerEvents: "auto",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  zIndex: 2,
+                }}
+                onClick={() => selectComment(comment._id)}
+                onMouseEnter={() => {
+                  if (comment.annotation) {
+                    setActiveAnnotation(comment.annotation);
+                    setShowAnnotationOverlay(true);
+                  }
+                }}
+                onMouseLeave={() => {
+                  setShowAnnotationOverlay(false);
                 }}
               >
-                <Typography variant="body2" color="primary" gutterBottom>
-                  <BrushIcon
-                    fontSize="small"
-                    sx={{ verticalAlign: "middle", mr: 0.5 }}
-                  />
-                  Annotation attached
-                </Typography>
-                <Button
-                  size="small"
-                  onClick={() => setTabValue(1)}
-                  color="primary"
-                >
-                  Edit Annotation
+                {comment.annotation && (
+                  <BrushIcon sx={{ fontSize: 12, color: "white" }} />
+                )}
+              </Box>
+            </Tooltip>
+          ))}
+      </Box>
+
+      {/* Comment Input Panel (shown when a point is clicked) */}
+      {pendingComment && (
+        <Box
+          sx={{
+            position: "absolute",
+            bottom: 20,
+            left: "50%",
+            transform: "translateX(-50%)",
+            width: "80%",
+            maxWidth: 600,
+            backgroundColor: "white",
+            borderRadius: 2,
+            boxShadow: 3,
+            p: 2,
+            zIndex: 5,
+          }}
+        >
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              mb: 1,
+            }}
+          >
+            <Typography variant="subtitle1">
+              Add Comment{" "}
+              {annotation && (
+                <BrushIcon
+                  color="secondary"
+                  sx={{ verticalAlign: "middle", ml: 1 }}
+                />
+              )}
+            </Typography>
+            <IconButton size="small" onClick={cancelComment}>
+              <CloseIcon />
+            </IconButton>
+          </Box>
+
+          <Box component="form" onSubmit={handleSubmitComment}>
+            <MentionInput
+              autoFocus
+              fullWidth
+              multiline
+              rows={2}
+              placeholder="Write a comment... (Use @ to mention users)"
+              value={commentText}
+              onChange={(e) => {
+                if (e.target._mentionValue) {
+                  setCommentText(e.target._mentionValue);
+                  delete e.target._mentionValue;
+                } else {
+                  setCommentText(e.target.value);
+                }
+                handleInputChange(e);
+              }}
+              onKeyDown={handleInputKeyDown}
+              inputRef={inputRef}
+              sx={{ mb: 1 }}
+            />
+
+            <MentionSuggestions
+              query={mentionState.mentionQuery}
+              anchorEl={mentionState.mentionAnchorEl}
+              onSelect={handleSelectUser}
+              onClose={closeMentionSuggestions}
+              projectId={file.projectId}
+            />
+
+            <Box
+              sx={{ display: "flex", justifyContent: "space-between", mt: 1 }}
+            >
+              <Button
+                startIcon={<BrushIcon />}
+                onClick={toggleAnnotationMode}
+                color={annotation ? "secondary" : "primary"}
+              >
+                {annotation ? "Edit Annotation" : "Add Annotation"}
+              </Button>
+              <Box>
+                <Button onClick={cancelComment} sx={{ mr: 1 }}>
+                  Cancel
                 </Button>
                 <Button
-                  size="small"
-                  onClick={() => setAnnotation(null)}
-                  color="error"
-                  sx={{ ml: 1 }}
+                  variant="contained"
+                  type="submit"
+                  disabled={!commentText.trim()}
                 >
-                  Remove
+                  Submit
                 </Button>
               </Box>
-            )}
-
-            {createComment.isError && (
-              <Typography color="error">
-                {createComment.error.message}
-              </Typography>
-            )}
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setOpen(false)}>Cancel</Button>
-            <Button
-              type="submit"
-              variant="contained"
-              color="primary"
-              disabled={!commentText.trim()}
-            >
-              Add Comment
-            </Button>
-          </DialogActions>
+            </Box>
+          </Box>
         </Box>
-      </Dialog>
+      )}
     </Box>
   );
 };
@@ -1127,7 +1181,7 @@ const UploadVersionDialog = ({ file, onClose, open }) => {
 };
 
 // File header component with deadline and version information
-const FileHeader = ({ file }) => {
+const FileHeader = ({ file, onToggleAnnotationMode, isAnnotationMode }) => {
   const theme = useTheme();
   const {
     data: { userId },
@@ -1215,7 +1269,17 @@ const FileHeader = ({ file }) => {
         )}
       </Box>
 
-      <Box>
+      <Box sx={{ display: "flex", alignItems: "center" }}>
+        <Button
+          startIcon={<BrushIcon />}
+          variant={isAnnotationMode ? "contained" : "outlined"}
+          color={isAnnotationMode ? "secondary" : "primary"}
+          onClick={onToggleAnnotationMode}
+          sx={{ mr: 2 }}
+        >
+          {isAnnotationMode ? "Exit Annotation Mode" : "Annotate"}
+        </Button>
+
         <IconButton onClick={handleMenuOpen}>
           <MoreVertIcon />
         </IconButton>
@@ -1252,6 +1316,11 @@ const File = () => {
   const { data: file, isLoading } = useSelectedFile();
   const theme = useTheme();
   const [searchParams] = useSearchParams();
+  const [isAnnotationMode, setIsAnnotationMode] = useState(false);
+
+  const toggleAnnotationMode = () => {
+    setIsAnnotationMode(!isAnnotationMode);
+  };
 
   if (isLoading) {
     return <Loading />;
@@ -1266,7 +1335,11 @@ const File = () => {
       }}
     >
       <TopBar title={file.name} back={`/projects/${file.projectId}`} />
-      <FileHeader file={file} />
+      <FileHeader
+        file={file}
+        onToggleAnnotationMode={toggleAnnotationMode}
+        isAnnotationMode={isAnnotationMode}
+      />
       <Box
         sx={{
           flex: 1,
@@ -1275,7 +1348,11 @@ const File = () => {
           overflow: "hidden",
         }}
       >
-        <ImageViewer file={file} />
+        <ImageViewer
+          file={file}
+          isAnnotationMode={isAnnotationMode}
+          setIsAnnotationMode={setIsAnnotationMode}
+        />
         <CommentBar fileId={file._id} />
       </Box>
     </Box>

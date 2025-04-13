@@ -82,42 +82,42 @@ one you would like to do**. As you will see the **feature descriptions are
 high-level, open ended and ambiguous on purpose**. We want you to think about
 the end user and use your creativity to implement them.
 
-### Feature 1: Comment replies
+### Feature 1: Comment replies ✅
 As a project owner, I would like to reply to comments so that I can have
 a conversation with the reviewer.
 
-### Feature 2: Real-time comment updates
+### Feature 2: Real-time comment updates ✅
 As a project owner, I would like the file view to update in real-time
 when a reviewer leaves a comment.
 
-### Feature 3: Set a deadline for the review
+### Feature 3: Set a deadline for the review ✅
 As a project owner, I would like to set a deadline for the review so that
 reviewers are aware of the time frame.
 
-### Feature 4: File versioning
+### Feature 4: File versioning ✅
 As a collaborator, I would like to upload a new version of a file so that I can
 address the reviewer's comments.
 
-### Feature 5: Global search
+### Feature 5: Global search ✅
 As a project owner, I would like to search for projects, files and comments
 from one central place so I can navigate to them quickly.
 
-### Feature 6: Lazy loading comments
+### Feature 6: Lazy loading comments ✅
 When a file has a lot of comments it is slow to load all of them at once.
 Implement infinite scrolling for comments.
 
-### Feature 7: Mentioning users in comments
+### Feature 7: Mentioning users in comments ✅
 I would like to easily mention a user while writing a comment so that they
 are notified by email.
 
-### Feature 8: Project folders
+### Feature 8: Project folders ✅
 I would like to organize my projects in folders.
 
-### Feature 9: Annotation tool
+### Feature 9: Annotation tool ✅
 As a reviewer when leaving a comment, I would like to draw annotations on the
 image so that I can provide more context.
 
-### Feature 10: Linkify URLs in comments
+### Feature 10: Linkify URLs in comments ✅
 When a URL is included in a comment, it should be a clickable link once the
 comment is created.
 
@@ -127,8 +127,8 @@ comment is created.
  - Don’t waste time on CSS or design (leverage the building blocks from Material Design)
  - You are allowed to include new dependencies
  - You are allowed to use AI
- - (bonus) Implement more than one feature
- - (bonus) Production ready: error handling, logging, refactoring and automated tests
+ - (bonus) Implement more than one feature ✅
+ - (bonus) Production ready: error handling ✅, logging ✅, refactoring ✅ and automated tests
 
 ## Submission
 Create a zip file of the assignment code directory and send it back to us by
