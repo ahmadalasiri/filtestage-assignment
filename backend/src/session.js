@@ -1,5 +1,5 @@
 import { ObjectId } from "mongodb";
-import { ValidationError } from "./errors.js";
+import { ApiError } from "./exceptions/ApiError.js";
 
 const SESSION_COOKIE_NAME = "session_id";
 const SESSION_DURATION_MS = 14 * 24 * 60 * 60 * 1000; // 14 days
@@ -41,7 +41,7 @@ export default async function Session({ db }) {
   async function get(req) {
     const sessionId = req.signedCookies[SESSION_COOKIE_NAME];
     if (!sessionId) {
-      throw new ValidationError("No session found");
+      throw new ApiError(401, "No session found");
     }
     return await db
       .collection("sessions")

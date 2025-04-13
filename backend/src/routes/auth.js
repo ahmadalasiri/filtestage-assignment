@@ -2,7 +2,7 @@ import { z } from "zod";
 import express from "express";
 import bcrypt from "bcryptjs";
 import fs from "fs/promises";
-import { ValidationError, UnauthorizedError } from "../errors.js";
+import { ApiError } from "../exceptions/ApiError.js";
 
 export default function AuthRoutes({ db, session }) {
   const router = express.Router();
@@ -17,7 +17,7 @@ export default function AuthRoutes({ db, session }) {
 
     const existingUser = await db.collection("users").findOne({ email });
     if (existingUser && existingUser.password) {
-      throw new ValidationError("User already exists");
+      throw new ApiError(400, "User already exists");
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -44,7 +44,7 @@ export default function AuthRoutes({ db, session }) {
 
     const user = await db.collection("users").findOne({ email });
     if (!user || !(await bcrypt.compare(password, user.password))) {
-      throw new UnauthorizedError("Invalid credentials");
+      throw new ApiError(400, "Invalid credentials");
     }
 
     await session.create(res, { userId: user._id });
@@ -54,7 +54,7 @@ export default function AuthRoutes({ db, session }) {
   router.get("/session", async (req, res) => {
     const { userId } = await session.get(req);
     if (!userId) {
-      throw new UnauthorizedError("Not authenticated");
+      throw new ApiError(401, "Not authenticated");
     }
 
     res.json({ userId });
@@ -63,7 +63,7 @@ export default function AuthRoutes({ db, session }) {
   router.post("/remove-account", async (req, res) => {
     const { userId } = await session.get(req);
     if (!userId) {
-      throw new UnauthorizedError("Not authenticated");
+      throw new ApiError(401, "Not authenticated");
     }
 
     await db.collection("users").deleteOne({ _id: userId });

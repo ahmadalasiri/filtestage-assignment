@@ -1,6 +1,6 @@
 import { z } from "zod";
 import express from "express";
-import { UnauthorizedError } from "../errors.js";
+import { ApiError } from "../exceptions/ApiError.js";
 
 export default function SearchRoutes({ db, session }) {
   const router = express.Router();
@@ -9,7 +9,7 @@ export default function SearchRoutes({ db, session }) {
   router.get("/", async (req, res) => {
     const { userId } = await session.get(req);
     if (!userId) {
-      throw new UnauthorizedError();
+      throw new ApiError(401, "Unauthorized");
     }
 
     const { query, filter } = z.object({

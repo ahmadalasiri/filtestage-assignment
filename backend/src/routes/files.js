@@ -3,12 +3,8 @@ import { ObjectId } from "mongodb";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
-import {
-  UnauthorizedError,
-  NotFoundError,
-  ValidationError,
-  ForbiddenError,
-} from "../errors.js";
+import { ApiError } from "../exceptions/ApiError.js";
+
 
 export default function FileRoutes({ db, session }) {
   const router = express.Router();
@@ -22,21 +18,21 @@ export default function FileRoutes({ db, session }) {
   router.post("/", upload.single("file"), async (req, res) => {
     const { userId } = await session.get(req);
     if (!userId) {
-      throw new UnauthorizedError();
+
     }
 
     if (!["image/jpeg", "image/png"].includes(req.file.mimetype)) {
-      throw new ValidationError("Invalid file type");
+      throw new ApiError(400, "Invalid file type");
     }
 
     const project = await db
       .collection("projects")
       .findOne({ _id: new ObjectId(req.body.projectId) });
     if (!project) {
-      throw new NotFoundError("Project not found");
+      throw new ApiError(404, "Project not found");
     }
     if (!project.authorId.equals(userId)) {
-      throw new ForbiddenError();
+      throw new ApiError(403, "Forbidden");
     }
 
     let deadline = null;
@@ -66,14 +62,14 @@ export default function FileRoutes({ db, session }) {
   router.get("/", async (req, res) => {
     const { userId } = await session.get(req);
     if (!userId) {
-      throw new UnauthorizedError();
+      throw new ApiError(401, "Not authenticated");
     }
 
     const project = await db
       .collection("projects")
       .findOne({ _id: new ObjectId(req.query.projectId) });
     if (!project) {
-      throw new NotFoundError("Project not found");
+      throw new ApiError(404, "Project not found");
     }
 
     if (
@@ -94,14 +90,14 @@ export default function FileRoutes({ db, session }) {
   router.get("/:id", async (req, res) => {
     const { userId } = await session.get(req);
     if (!userId) {
-      throw new UnauthorizedError();
+      throw new ApiError(401, "Not authenticated");
     }
 
     const file = await db
       .collection("files")
       .findOne({ _id: new ObjectId(req.params.id) });
     if (!file) {
-      throw new NotFoundError("File not found");
+      throw new ApiError(404, "File not found");
     }
 
     const project = await db
@@ -112,7 +108,7 @@ export default function FileRoutes({ db, session }) {
       !file.authorId.equals(userId) &&
       !project.reviewers.some((reviewer) => reviewer.equals(userId))
     ) {
-      throw new ForbiddenError();
+      throw new ApiError(403, "Forbidden");
     }
 
     res.json(file);
@@ -121,14 +117,14 @@ export default function FileRoutes({ db, session }) {
   router.get("/:id/content", async (req, res) => {
     const { userId } = await session.get(req);
     if (!userId) {
-      throw new UnauthorizedError();
+      throw new ApiError(401, "Not authenticated");
     }
 
     const file = await db
       .collection("files")
       .findOne({ _id: new ObjectId(req.params.id) });
     if (!file) {
-      throw new NotFoundError("File not found");
+      throw new ApiError(404, "File not found");
     }
 
     const project = await db
@@ -139,7 +135,7 @@ export default function FileRoutes({ db, session }) {
       !file.authorId.equals(userId) &&
       !project.reviewers.some((reviewer) => reviewer.equals(userId))
     ) {
-      throw new ForbiddenError();
+      throw new ApiError(403, "Forbidden");
     }
 
     res.sendFile(path.join(process.cwd(), file.path));
@@ -148,24 +144,24 @@ export default function FileRoutes({ db, session }) {
   router.patch("/:id/deadline", async (req, res) => {
     const { userId } = await session.get(req);
     if (!userId) {
-      throw new UnauthorizedError();
+      throw new ApiError(401, "Not authenticated");
     }
 
     const fileId = new ObjectId(req.params.id);
     const file = await db.collection("files").findOne({ _id: fileId });
     if (!file) {
-      throw new NotFoundError("File not found");
+      throw new ApiError(404, "File not found");
     }
 
     if (!file.authorId.equals(userId)) {
-      throw new ForbiddenError("Only the file owner can update the deadline");
+      throw new ApiError(403, "Forbidden");
     }
 
     let deadline = null;
     if (req.body.deadline) {
       deadline = new Date(req.body.deadline);
       if (isNaN(deadline)) {
-        throw new ValidationError("Invalid date and time format");
+        throw new ApiError(400, "Invalid date and time format");
       }
     }
 
@@ -181,31 +177,31 @@ export default function FileRoutes({ db, session }) {
   router.post("/:id/versions", upload.single("file"), async (req, res) => {
     const { userId } = await session.get(req);
     if (!userId) {
-      throw new UnauthorizedError();
+      throw new ApiError(401, "Not authenticated");
     }
 
     if (!req.file || ![
       "image/jpeg",
       "image/png"
     ].includes(req.file.mimetype)) {
-      throw new ValidationError("Invalid file type");
+      throw new ApiError(400, "Invalid file type");
     }
 
     const originalFileId = new ObjectId(req.params.id);
     const originalFile = await db.collection("files").findOne({ _id: originalFileId });
 
     if (!originalFile) {
-      throw new NotFoundError("Original file not found");
+      throw new ApiError(404, "Original file not found")
     }
 
     const project = await db.collection("projects").findOne({ _id: originalFile.projectId });
     if (!project) {
-      throw new NotFoundError("Project not found");
+      throw new ApiError(404, "Project not found")
     }
 
     if (!project.authorId.equals(userId) &&
       !project.reviewers.some(reviewer => reviewer.equals(userId))) {
-      throw new ForbiddenError();
+
     }
 
     const latestVersion = await db

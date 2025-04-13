@@ -1,6 +1,6 @@
 import { z } from "zod";
 import express from "express";
-import { UnauthorizedError, NotFoundError, ForbiddenError } from "../errors.js";
+import { ApiError } from "../exceptions/ApiError.js";
 import { StringObjectId } from "../schemas.js";
 import { ObjectId } from "mongodb";
 
@@ -10,7 +10,7 @@ export default function FolderRoutes({ db, session }) {
   router.post("/", async (req, res) => {
     const { userId } = await session.get(req);
     if (!userId) {
-      throw new UnauthorizedError();
+      throw new ApiError(401, "Unauthorized");
     }
 
     const { name, parentFolderId } = z.object({
@@ -35,7 +35,7 @@ export default function FolderRoutes({ db, session }) {
   router.put("/:folderId", async (req, res) => {
     const { userId } = await session.get(req);
     if (!userId) {
-      throw new UnauthorizedError();
+      throw new ApiError(401, "Unauthorized");
     }
 
     const { folderId } = z.object({ folderId: StringObjectId }).parse(req.params);
@@ -45,11 +45,11 @@ export default function FolderRoutes({ db, session }) {
 
     const folder = await db.collection("folders").findOne({ _id: folderId });
     if (!folder) {
-      throw new NotFoundError();
+      throw new ApiError(404, "Folder not found");
     }
 
     if (!folder.authorId.equals(userId)) {
-      throw new ForbiddenError();
+      throw new ApiError(403, "Forbidden: You don't have permission to modify this folder");
     }
 
     const update = {};
@@ -66,7 +66,7 @@ export default function FolderRoutes({ db, session }) {
   router.get("/", async (req, res) => {
     const { userId } = await session.get(req);
     if (!userId) {
-      throw new UnauthorizedError();
+      throw new ApiError(401, "Unauthorized");
     }
 
     const folders = await db

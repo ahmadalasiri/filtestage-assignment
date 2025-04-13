@@ -1,6 +1,7 @@
 import { z } from "zod";
 import express from "express";
-import { UnauthorizedError } from "../errors.js";
+import { ApiError } from "../exceptions/ApiError.js";
+
 import { StringObjectId } from "../schemas.js";
 import { processMentions, formatMentions } from "../services/mentionService.js";
 import { getSocketIO } from "../services/socket.js";
@@ -11,7 +12,7 @@ export default function CommentRoutes({ db, session }) {
   router.get("/", async (req, res) => {
     const { userId } = await session.get(req);
     if (!userId) {
-      throw new UnauthorizedError();
+      throw new ApiError(401, "Not authenticated");
     }
 
     const {
@@ -87,7 +88,7 @@ export default function CommentRoutes({ db, session }) {
   router.post("/", async (req, res) => {
     const { userId } = await session.get(req);
     if (!userId) {
-      throw new UnauthorizedError();
+      throw new ApiError(401, "Not authenticated");
     }
 
     const { fileId, body, x, y, parentId, annotation } = z
@@ -141,10 +142,10 @@ export default function CommentRoutes({ db, session }) {
     // Emit real-time event to all users viewing this file
     try {
       const io = getSocketIO();
-      
+
       // Emit to specific room
       io.to(`file-${fileId}`).emit('new-comment', commentWithAuthor);
-      
+
       // Also emit to all connected clients as a fallback
       io.emit('global-new-comment', {
         ...commentWithAuthor,
@@ -162,17 +163,17 @@ export default function CommentRoutes({ db, session }) {
         // Get file and project information for the email template
         const file = await db.collection("files").findOne({ _id: fileId });
         if (!file) {
-          throw new Error('File not found');
+          throw new ApiError(404, 'File not found');
         }
 
         const project = await db.collection("projects").findOne({ _id: file.projectId });
         if (!project) {
-          throw new Error('Project not found');
+          throw new ApiError(404, 'Project not found');
         }
 
         const commentAuthor = await db.collection("users").findOne({ _id: userId });
         if (!commentAuthor) {
-          throw new Error('Author not found');
+          throw new ApiError(404, 'Author not found');
         }
 
         // Process mentions and send notifications

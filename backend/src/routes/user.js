@@ -1,6 +1,6 @@
 import express from "express";
 import { z } from "zod";
-import { UnauthorizedError, NotFoundError } from "../errors.js";
+import { ApiError } from "../exceptions/ApiError.js";
 import { StringObjectId } from "../schemas.js";
 
 export default function UserRoutes({ db, session }) {

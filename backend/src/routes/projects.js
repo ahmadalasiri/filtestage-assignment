@@ -1,6 +1,6 @@
 import { z } from "zod";
 import express from "express";
-import { UnauthorizedError, NotFoundError, ForbiddenError } from "../errors.js";
+import { ApiError } from "../exceptions/ApiError.js";
 import { StringObjectId } from "../schemas.js";
 import { ObjectId } from "mongodb";
 
@@ -10,7 +10,7 @@ export default function ProjectRoutes({ db, session }) {
   router.post("/", async (req, res) => {
     const { userId } = await session.get(req);
     if (!userId) {
-      throw new UnauthorizedError();
+      throw new ApiError(401, "Unauthorized");
     }
 
     const { name, folderId } = z.object({ 
@@ -24,7 +24,7 @@ export default function ProjectRoutes({ db, session }) {
     });
 
     if (!folder) {
-      throw new NotFoundError("Folder not found");
+      throw new ApiError(404, "Folder not found");
     }
 
     const { insertedId } = await db.collection("projects").insertOne({
@@ -43,7 +43,7 @@ export default function ProjectRoutes({ db, session }) {
   router.get("/", async (req, res) => {
     const { userId } = await session.get(req);
     if (!userId) {
-      throw new UnauthorizedError();
+      throw new ApiError(401, "Unauthorized");
     }
 
     const projects = await db
@@ -60,7 +60,7 @@ export default function ProjectRoutes({ db, session }) {
   router.post("/:projectId/reviewers", async (req, res) => {
     const { userId } = await session.get(req);
     if (!userId) {
-      throw new UnauthorizedError();
+      throw new ApiError(401, "Unauthorized");
     }
 
     const { projectId } = z
@@ -70,10 +70,10 @@ export default function ProjectRoutes({ db, session }) {
 
     const project = await db.collection("projects").findOne({ _id: projectId });
     if (!project) {
-      throw NotFoundError();
+      throw new ApiError(404, "Project not found");
     }
     if (!project.authorId.equals(userId)) {
-      throw new ForbiddenError();
+      throw new ApiError(403, "Forbidden: You don't have permission to modify this project");
     }
 
     const existingReviewer = await db.collection("users").findOne({ email });
