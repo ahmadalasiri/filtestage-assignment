@@ -1,4 +1,5 @@
 import { Server as SocketServer } from 'socket.io';
+import { env } from "../config/validateEnv.js";
 
 let io;
 
@@ -10,7 +11,7 @@ let io;
 export const initializeSocket = (server) => {
   io = new SocketServer(server, {
     cors: {
-      origin: process.env.FRONTEND_ORIGIN,
+      origin: env.FRONTEND_ORIGIN,
       methods: ['GET', 'POST'],
       credentials: true,
     },

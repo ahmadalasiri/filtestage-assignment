@@ -3,6 +3,7 @@ import { ObjectId } from "mongodb";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import { asyncHandler } from "../middleware/asyncHandler.js";
 import { ApiError } from "../exceptions/ApiError.js";
 
 
@@ -87,7 +88,8 @@ export default function FileRoutes({ db, session }) {
     );
   });
 
-  router.get("/:id", async (req, res) => {
+  router.get("/:id", asyncHandler(async (req, res) => {
+    console.log("Fetching file______________");
     const { userId } = await session.get(req);
     if (!userId) {
       throw new ApiError(401, "Not authenticated");
@@ -95,7 +97,9 @@ export default function FileRoutes({ db, session }) {
 
     const file = await db
       .collection("files")
-      .findOne({ _id: new ObjectId(req.params.id) });
+      .findOne({
+        _id: req.params.id
+      });
     if (!file) {
       throw new ApiError(404, "File not found");
     }
@@ -112,7 +116,7 @@ export default function FileRoutes({ db, session }) {
     }
 
     res.json(file);
-  });
+  }));
 
   router.get("/:id/content", async (req, res) => {
     const { userId } = await session.get(req);

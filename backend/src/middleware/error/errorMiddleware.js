@@ -1,4 +1,5 @@
 import { ApiError } from '../../exceptions/ApiError.js';
+import { env } from "../../config/validateEnv.js";
 
 /**
  * Global error handling middleware
@@ -15,7 +16,7 @@ export const errorMiddleware = (err, req, res, next) => {
   err.status = err.status || 'error';
 
   // Handle specific error types
-  if (process.env.NODE_ENV === 'development') {
+  if (env.NODE_ENV === 'development') {
     sendDevelopmentResponse(err, req, res);
   } else {
     // Handle MongoDB and other operational errors
@@ -111,10 +112,10 @@ const sendProductionResponse = (err, req, res) => {
       message: err.message
     });
   }
-  
+
   // Programming or unknown error: don't leak error details
   console.error('ERROR 💥', err);
-  
+
   // Send generic message
   res.status(500).json({
     status: 'error',

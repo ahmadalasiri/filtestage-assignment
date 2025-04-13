@@ -1,5 +1,6 @@
 import { ObjectId } from "mongodb";
 import { ApiError } from "./exceptions/ApiError.js";
+import { env } from "./config/validateEnv.js";
 
 const SESSION_COOKIE_NAME = "session_id";
 const SESSION_DURATION_MS = 14 * 24 * 60 * 60 * 1000; // 14 days
@@ -20,7 +21,7 @@ export default async function Session({ db }) {
       .insertOne(session);
     res.cookie(SESSION_COOKIE_NAME, sessionId, {
       expires: session.expiresAt,
-      domain: process.env.DOMAIN,
+      domain: env.DOMAIN,
       httpOnly: true,
       sameSite: "strict",
       signed: true,
@@ -31,7 +32,7 @@ export default async function Session({ db }) {
     const session = await get(req);
     await db.collection("sessions").deleteOne({ _id: session._id });
     res.clearCookie(SESSION_COOKIE_NAME, {
-      domain: process.env.DOMAIN,
+      domain: env.DOMAIN,
       path: "/",
       httpOnly: true,
       signed: true,

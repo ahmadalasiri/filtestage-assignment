@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import { env } from "../config/validateEnv.js";
 
 /**
  * Send an email notification
@@ -11,22 +12,22 @@ import nodemailer from 'nodemailer';
 export const sendEmail = async (to, subject, template) => {
   try {
     // Check if SMTP configuration is available
-    if (!process.env.SMTP_HOST || !process.env.SMTP_PORT || !process.env.SMTP_USERNAME || !process.env.SMTP_PASSWORD) {
+    if (!env.SMTP_HOST || !env.SMTP_PORT || !env.SMTP_USERNAME || !env.SMTP_PASSWORD) {
       // Return true for development environments to simulate success
-      if (process.env.NODE_ENV === 'development') {
+      if (env.NODE_ENV === 'development') {
         return true;
       }
-      
+
       throw new Error('SMTP configuration missing');
     }
-    
+
     // Create a transporter using SMTP configuration
     const mailer = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: process.env.SMTP_PORT,
+      host: env.SMTP_HOST,
+      port: env.SMTP_PORT,
       auth: {
-        user: process.env.SMTP_USERNAME,
-        pass: process.env.SMTP_PASSWORD,
+        user: env.SMTP_USERNAME,
+        pass: env.SMTP_PASSWORD,
       },
     });
 
@@ -51,7 +52,7 @@ export const sendEmail = async (to, subject, template) => {
     });
 
     await mailer.sendMail({
-      from: `${process.env.SMTP_NAME || 'Filestage'} <${process.env.SMTP_USERNAME || 'notifications@filestage.com'}>`,
+      from: `${env.SMTP_NAME || 'Filestage'} <${env.SMTP_USERNAME || 'notifications@filestage.com'}>`,
       to,
       subject,
       html: template,

@@ -1,4 +1,5 @@
 import { sendEmail, generateMentionTemplate } from './emailService.js';
+import { env } from "../config/validateEnv.js";
 
 /**
  * Extract user mentions from comment text
@@ -9,7 +10,7 @@ export const extractMentions = (text) => {
   // Match @username pattern (allow letters, numbers, underscores, hyphens, and dots)
   const mentionRegex = /@([\w.-]+)/g;
   const matches = text.match(mentionRegex) || [];
-  
+
   // Remove @ symbol and return unique usernames
   return [...new Set(matches.map(match => match.substring(1)))];
 };
@@ -27,11 +28,11 @@ export const processMentions = async (db, comment, file, project, author) => {
   try {
     // Extract usernames from comment
     const mentionedUsernames = extractMentions(comment.body);
-    
+
     if (mentionedUsernames.length === 0) {
       return [];
     }
-    
+
     // Find mentioned users in database - search for the exact usernames without appending domain
     const mentionedUsers = await db.collection('users')
       .find({
@@ -45,16 +46,16 @@ export const processMentions = async (db, comment, file, project, author) => {
         ]
       })
       .toArray();
-      
 
-    
+
+
     // Check if we have SMTP configuration
-    const hasSmtpConfig = process.env.SMTP_HOST && process.env.SMTP_PORT && 
-                         process.env.SMTP_USERNAME && process.env.SMTP_PASSWORD;
-    
+    const hasSmtpConfig = env.SMTP_HOST && env.SMTP_PORT &&
+      env.SMTP_USERNAME && env.SMTP_PASSWORD;
+
     if (!hasSmtpConfig) {
       console.warn('SMTP Configuration missing. Email notifications will not be sent.');
-      
+
       // Return mock results for logging purposes
       return mentionedUsers.map(user => ({
         user: user._id,
@@ -63,17 +64,17 @@ export const processMentions = async (db, comment, file, project, author) => {
         email: user.email
       }));
     }
-    
+
     // Generate comment URL - direct format without projects path
-    const commentUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/files/${file._id}?commentId=${comment._id}`;
-    
+    const commentUrl = `${env.FRONTEND_URL || 'http://localhost:5173'}/files/${file._id}?commentId=${comment._id}`;
+
     // Send email notifications
     const notificationPromises = mentionedUsers.map(user => {
       // Skip notification if the mentioned user is the comment author
       if (user._id.toString() === author._id.toString()) {
         return Promise.resolve({ user: user._id, sent: false, reason: 'self-mention', email: user.email });
       }
-      
+
       const emailData = {
         mentionerName: author.email.split('@')[0], // Use username part of email
         projectName: project.name,
@@ -81,9 +82,9 @@ export const processMentions = async (db, comment, file, project, author) => {
         commentText: comment.body,
         commentUrl
       };
-      
+
       const emailTemplate = generateMentionTemplate(emailData);
-      
+
       return sendEmail(user.email, `You were mentioned in a comment on ${project.name}`, emailTemplate)
         .then(() => {
           return { user: user._id, sent: true, email: user.email };
@@ -93,7 +94,7 @@ export const processMentions = async (db, comment, file, project, author) => {
           return { user: user._id, sent: false, error: error.message, email: user.email };
         });
     });
-    
+
     return Promise.all(notificationPromises);
   } catch (error) {
     console.error('Error processing mentions:', error);
