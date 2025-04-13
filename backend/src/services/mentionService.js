@@ -66,7 +66,7 @@ export const processMentions = async (db, comment, file, project, author) => {
     }
 
     // Generate comment URL - direct format without projects path
-    const commentUrl = `${env.FRONTEND_URL || 'http://localhost:5173'}/files/${file._id}?commentId=${comment._id}`;
+    const commentUrl = `${env.FRONTEND_ORIGIN || 'http://localhost:5173'}/files/${file._id}?commentId=${comment._id}`;
 
     // Send email notifications
     const notificationPromises = mentionedUsers.map(user => {

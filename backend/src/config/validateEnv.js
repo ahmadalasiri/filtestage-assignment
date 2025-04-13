@@ -7,7 +7,12 @@ export const env = cleanEnv(process.env, {
   PORT: port({ default: 4000 }),
   NODE_ENV: str({ choices: ['development', 'production', 'testing'], default: 'development' }),
   MONGO_URI: url(),
-  FRONTEND_ORIGIN: url({ default: 'http://localhost:3000' }),
+  FRONTEND_ORIGIN: url(),
   COOKIE_SECRET: str(),
   DOMAIN: str(),
+  SMTP_NAME: str(),
+  SMTP_USERNAME: str(),
+  SMTP_PASSWORD: str(),
+  SMTP_HOST: str(),
+  SMTP_PORT: port(),
 });

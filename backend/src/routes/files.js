@@ -96,7 +96,7 @@ export default function FileRoutes({ db, session }) {
     const file = await db
       .collection("files")
       .findOne({
-        _id: req.params.id
+        _id: new ObjectId(req.params.id)
       });
     if (!file) {
       throw new ApiError(404, "File not found");
