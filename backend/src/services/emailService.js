@@ -1,4 +1,4 @@
-import nodemailer from 'nodemailer';
+import nodemailer from "nodemailer";
 import { env } from "../config/validateEnv.js";
 
 /**
@@ -12,13 +12,18 @@ import { env } from "../config/validateEnv.js";
 export const sendEmail = async (to, subject, template) => {
   try {
     // Check if SMTP configuration is available
-    if (!env.SMTP_HOST || !env.SMTP_PORT || !env.SMTP_USERNAME || !env.SMTP_PASSWORD) {
+    if (
+      !env.SMTP_HOST ||
+      !env.SMTP_PORT ||
+      !env.SMTP_USERNAME ||
+      !env.SMTP_PASSWORD
+    ) {
       // Return true for development environments to simulate success
-      if (env.NODE_ENV === 'development') {
+      if (env.NODE_ENV === "development") {
         return true;
       }
 
-      throw new Error('SMTP configuration missing');
+      throw new Error("SMTP configuration missing");
     }
 
     // Create a transporter using SMTP configuration
@@ -47,21 +52,21 @@ export const sendEmail = async (to, subject, template) => {
     }
 
     // Set up error handler
-    mailer.on('error', err => {
+    mailer.on("error", (err) => {
       throw new Error(`SMTP transport error: ${err.message}`);
     });
 
     await mailer.sendMail({
-      from: `${env.SMTP_NAME || 'Filestage'} <${env.SMTP_USERNAME || 'notifications@filestage.com'}>`,
+      from: `${env.SMTP_NAME || "Filestage"} <${env.SMTP_USERNAME || "notifications@filestage.com"}>`,
       to,
       subject,
       html: template,
-      priority: 'high',
+      priority: "high",
     });
 
     return true;
   } catch (error) {
-    console.error('Email sending failed:', error.message);
+    console.error("Email sending failed:", error.message);
     throw new Error(`Failed to send email: ${error.message}`);
   }
 };
@@ -77,69 +82,106 @@ export const sendEmail = async (to, subject, template) => {
  * @returns {string} - HTML email template
  */
 export const generateMentionTemplate = (data) => {
-  const { mentionerName, projectName, fileName, commentText, commentUrl } = data;
+  const { mentionerName, projectName, fileName, commentText, commentUrl } =
+    data;
 
   return `
-    <!DOCTYPE html>
-    <html>
+    <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+    <html xmlns="http://www.w3.org/1999/xhtml">
     <head>
-      <meta charset="utf-8">
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       <title>You were mentioned in a comment</title>
-      <style>
-        body { 
-          font-family: Arial, sans-serif; 
-          line-height: 1.6;
-          color: #333;
-          max-width: 600px;
-          margin: 0 auto;
-          padding: 20px;
-        }
-        .header { 
-          background-color: #4285f4;
-          color: white;
-          padding: 20px;
-          text-align: center;
-          border-radius: 5px 5px 0 0;
-        }
-        .content {
-          padding: 20px;
-          border: 1px solid #ddd;
-          border-top: none;
-          border-radius: 0 0 5px 5px;
-        }
-        .comment {
-          background-color: #f5f5f5;
-          padding: 15px;
-          border-radius: 5px;
-          margin: 15px 0;
-        }
-        .button {
-          display: inline-block;
-          background-color: #4285f4;
-          color: white;
-          text-decoration: none;
-          padding: 10px 20px;
-          border-radius: 5px;
-          margin-top: 15px;
-        }
-      </style>
     </head>
-    <body>
-      <div class="header">
-        <h2>You were mentioned in a comment</h2>
-      </div>
-      <div class="content">
-        <p>Hello,</p>
-        <p><strong>${mentionerName}</strong> mentioned you in a comment on <strong>${fileName}</strong> in the project <strong>${projectName}</strong>.</p>
+    <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5; color: #333333;">
+      <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; margin: 0 auto;">
+        <!-- Header -->
+        <tr>
+          <td bgcolor="#4662D7" style="padding: 20px; text-align: center; color: #ffffff;">
+            <h2 style="margin: 0; font-size: 24px; font-weight: 600;">You were mentioned in a comment</h2>
+          </td>
+        </tr>
         
-        <div class="comment">
-          <p>${commentText}</p>
-        </div>
+        <!-- Content -->
+        <tr>
+          <td bgcolor="#ffffff" style="padding: 30px 25px;">
+            <p style="font-size: 18px; margin-top: 0; margin-bottom: 20px;">Hello,</p>
+            
+            <p style="margin-bottom: 25px; font-size: 16px; color: #444444;">
+              <strong style="color: #222222; font-weight: 600;">${mentionerName}</strong> mentioned you in a comment.
+            </p>
+            
+            <!-- File Info -->
+            <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 15px;">
+              <tr>
+                <td bgcolor="#f0f4ff" style="padding: 10px 15px; border-radius: 6px;">
+                  <table border="0" cellpadding="0" cellspacing="0" width="100%">
+                    <tr>
+                      <td width="30" style="vertical-align: middle;">📄</td>
+                      <td style="vertical-align: middle;">
+                        <span style="font-weight: 600; color: #333333;">${fileName}</span>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+            
+            <p style="margin-bottom: 25px; font-size: 16px; color: #444444;">
+              Project: <strong style="color: #222222; font-weight: 600;">${projectName}</strong>
+            </p>
+            
+            <!-- Comment -->
+            <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 25px; margin-top: 25px;">
+              <tr>
+                <td style="padding: 18px; background-color: #f7f9fc; border-radius: 6px; border-left: 4px solid #4662D7;">
+                  <p style="margin: 0; color: #444444; font-size: 16px; line-height: 1.6;">${commentText}</p>
+                </td>
+              </tr>
+            </table>
+            
+            <!-- Button -->
+            <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 0;">
+              <tr>
+                <td>
+                  <table border="0" cellpadding="0" cellspacing="0">
+                    <tr>
+                      <td bgcolor="#4662D7" style="border-radius: 6px; padding: 0;">
+                        <a href="${commentUrl}" target="_blank" style="color: #ffffff; text-decoration: none; font-weight: 600; display: inline-block; padding: 12px 24px;">
+                          View Comment
+                        </a>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+            
+            <p style="margin-top: 30px; margin-bottom: 0; font-size: 16px; color: #444444;">
+              Thank you,<br />
+              The Filestage Team
+            </p>
+          </td>
+        </tr>
         
-        <a href="${commentUrl}" class="button">View Comment</a>
-        
-        <p>Thank you,<br>The Filestage Team</p>
-      </div>
+        <!-- Footer -->
+        <tr>
+          <td bgcolor="#ffffff" style="padding: 20px 25px; border-top: 1px solid #eeeeee; text-align: center; color: #777777; font-size: 14px;">
+            <table border="0" cellpadding="0" cellspacing="0" width="100%">
+              <tr>
+                <td style="text-align: center; padding-bottom: 15px;">
+                  <img src="https://www.filestage.io/wp-content/themes/filestage-theme/assets/img/filestage-logo.svg" alt="Filestage Logo" style="height: 30px;" />
+                </td>
+              </tr>
+              <tr>
+                <td style="text-align: center;">
+                  <p style="margin: 0;">© ${new Date().getFullYear()} Filestage. All rights reserved.</p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
     </body>
     </html>
   `;
