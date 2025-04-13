@@ -1,4 +1,4 @@
-import { MongoClient } from 'mongodb';
+import logger from "../utils/logger.js";
 
 /**
  * Graceful shutdown handler for the application
@@ -8,46 +8,47 @@ import { MongoClient } from 'mongodb';
  */
 export const setupShutdownHandler = (server, client) => {
   // Handle process kill signal (SIGINT)
-  process.on('SIGINT', async () => {
-    console.log('👋 SIGINT RECEIVED. Shutting down gracefully');
+  process.on("SIGINT", async () => {
+    logger.info("👋 SIGINT RECEIVED. Shutting down gracefully");
 
     try {
       // Close server to stop accepting new connections
       server.close(() => {
-        console.log('HTTP server closed.');
+        logger.info("HTTP server closed.");
       });
 
       // Close database connection
       if (client) {
         await client.close();
-        console.log('MongoDB connection closed.');
+        logger.info("MongoDB connection closed.");
       }
 
-      console.log('💥 Process terminated!');
+      logger.info("Process terminated gracefully");
       process.exit(0); // Exit with success code
     } catch (err) {
-      console.error('Error during graceful shutdown:', err);
+      logger.error("Error during graceful shutdown", {
+        error: err.message,
+        stack: err.stack,
+      });
       process.exit(1); // Exit with error code
     }
   });
 
-  // Handle unhandled promise rejections
-  process.on('unhandledRejection', (err) => {
-    console.error('UNHANDLED REJECTION! 💥');
-    console.error(err.name, err.message);
-    console.error(err.stack);
-
-    // TODO: Notify developers
+  process.on("uncaughtException", (error) => {
+    logger.error("UNCAUGHT EXCEPTION! 💥", {
+      error: error.message,
+      stack: error.stack,
+    });
     process.exit(1);
   });
 
-  // Handle uncaught exceptions
-  process.on('uncaughtException', (err) => {
-    console.error('UNCAUGHT EXCEPTION! 💥');
-    console.error(err.name, err.message);
-    console.error(err.stack);
-
-    // TODO: Notify developers
+  process.on("unhandledRejection", (reason, promise) => {
+    logger.error("UNHANDLED REJECTION! 💥", {
+      reason: reason instanceof Error ? reason.message : reason,
+      stack:
+        reason instanceof Error ? reason.stack : "No stack trace available",
+      promise,
+    });
     process.exit(1);
   });
 };

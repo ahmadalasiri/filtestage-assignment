@@ -1,14 +1,15 @@
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
-import morgan from 'morgan';
 import http from 'http';
 import { initializeSocket } from './socket.js';
 import { setupShutdownHandler } from '../exceptions/index.js';
-import { errorMiddleware } from '../middleware/error/index.js';
+import { errorHandler, notFoundHandler } from '../middleware/errorHandler.js';
 import { notFound } from '../exceptions/index.js';
 import { env } from '../config/validateEnv.js';
 import { createAuthMiddleware } from '../middleware/auth/authMiddleware.js';
+import logger from '../utils/logger.js';
+import morganMiddleware from '../middleware/morganLogger.js';
 
 // Import route handlers
 import AuthRoutes from '../routes/auth.js';
@@ -23,8 +24,8 @@ export class Server {
   constructor(config = {}) {
     this.app = express();
     this.config = {
-      corsOrigin: config.corsOrigin || env.FRONTEND_ORIGIN,
-      cookieSecret: config.cookieSecret || env.COOKIE_SECRET,
+      corsOrigin: env.FRONTEND_ORIGIN,
+      cookieSecret: env.COOKIE_SECRET,
       ...config
     };
 
@@ -38,13 +39,18 @@ export class Server {
   }
 
   configureMiddleware() {
-    this.app.use(morgan('dev'));
+    this.app.use(morganMiddleware);
     this.app.use(express.json());
+    this.app.use(express.urlencoded({ extended: true }));
     this.app.use(cors({
       origin: this.config.corsOrigin,
       credentials: true
     }));
     this.app.use(cookieParser(this.config.cookieSecret));
+
+    this.app.get('/health', (req, res) => {
+      res.status(200).json({ status: 'ok' });
+    });
   }
 
   registerRoutes() {
@@ -75,8 +81,8 @@ export class Server {
     this.app.use('/search', this.auth.authenticate, routes.search);
 
     // Error handling
-    this.app.use(notFound);
-    this.app.use(errorMiddleware);
+    this.app.use(notFoundHandler);
+    this.app.use(errorHandler);
   }
 
   initializeSocketIO() {
@@ -91,7 +97,8 @@ export class Server {
   start(port) {
     return new Promise((resolve) => {
       this.server.listen(port, () => {
-        console.log(`Server running on port: ${port}`);
+        logger.info(`Server running on port: ${port}`);
+        logger.info(`Environment: ${process.env.NODE_ENV}`);
         resolve();
       });
     });
