@@ -1,4 +1,4 @@
-import { ApiError } from '../../exceptions/ApiError.js';
+import { ApiError } from '../exceptions/ApiError.js';
 
 /**
  * Authentication middleware factory

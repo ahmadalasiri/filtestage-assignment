@@ -4,10 +4,10 @@ import cookieParser from 'cookie-parser';
 import http from 'http';
 import { initializeSocket } from './socket.js';
 import { setupShutdownHandler } from '../exceptions/index.js';
-import { errorHandler, notFoundHandler } from '../middleware/errorHandler.js';
-import { notFound } from '../exceptions/index.js';
+import { errorHandler } from '../middleware/errorHandler.js';
+import { notFoundHandler } from '../exceptions/index.js';
 import { env } from '../config/validateEnv.js';
-import { createAuthMiddleware } from '../middleware/auth/authMiddleware.js';
+import { createAuthMiddleware } from '../middleware/authMiddleware.js';
 import logger from '../utils/logger.js';
 import morganMiddleware from '../middleware/morganLogger.js';
 

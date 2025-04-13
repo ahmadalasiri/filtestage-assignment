@@ -11,7 +11,7 @@ async function main() {
 
   const server = new Server({
     db: database,
-    session: session
+    session: session,
   });
 
   server.registerRoutes();
@@ -23,4 +23,4 @@ async function main() {
   await server.start(env.PORT);
 }
 
-main()
+main();
