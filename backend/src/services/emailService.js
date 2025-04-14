@@ -169,11 +169,6 @@ export const generateMentionTemplate = (data) => {
           <td bgcolor="#ffffff" style="padding: 20px 25px; border-top: 1px solid #eeeeee; text-align: center; color: #777777; font-size: 14px;">
             <table border="0" cellpadding="0" cellspacing="0" width="100%">
               <tr>
-                <td style="text-align: center; padding-bottom: 15px;">
-                  <img src="https://www.filestage.io/wp-content/themes/filestage-theme/assets/img/filestage-logo.svg" alt="Filestage Logo" style="height: 30px;" />
-                </td>
-              </tr>
-              <tr>
                 <td style="text-align: center;">
                   <p style="margin: 0;">© ${new Date().getFullYear()} Filestage. All rights reserved.</p>
                 </td>

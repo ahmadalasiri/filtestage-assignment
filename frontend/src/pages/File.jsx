@@ -10,16 +10,12 @@ import {
   Button,
   TextField,
   Card,
-  CardHeader,
-  CardContent,
   Typography,
   Chip,
   IconButton,
   Menu,
   MenuItem,
   Link,
-  Tabs,
-  Tab,
   Snackbar,
   Alert,
   Paper,
@@ -144,8 +140,6 @@ const ReplyForm = ({ fileId, parentId, onCancel }) => {
     </Box>
   );
 };
-
-// This component is no longer needed as replies are now handled in the CommentContent component
 
 // Main comment card component
 // Comment Thread component that displays a parent comment and its replies in a single card
