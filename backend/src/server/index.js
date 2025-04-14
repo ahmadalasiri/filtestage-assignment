@@ -88,7 +88,7 @@ export class Server {
   }
 
   initializeSocketIO() {
-    this.io = initializeSocket(this.server, this.session);
+    this.io = initializeSocket(this.server);
     return this.io;
   }
 

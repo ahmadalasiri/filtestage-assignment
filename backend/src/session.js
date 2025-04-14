@@ -65,8 +65,6 @@ export default async function Session({ db }) {
         return null;
       }
 
-      console.log(`Full cookie header: "${cookieHeader}"`);
-
       // Custom parsing for handling complex session cookies
       // Look for our specific cookie pattern with regex
       const regex = new RegExp(`${SESSION_COOKIE_NAME}=([^;]+)`);
