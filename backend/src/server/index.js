@@ -1,24 +1,24 @@
-import express from 'express';
-import cors from 'cors';
-import cookieParser from 'cookie-parser';
-import http from 'http';
-import { initializeSocket } from './socket.js';
-import { setupShutdownHandler } from '../exceptions/index.js';
-import { errorHandler } from '../middleware/errorHandler.js';
-import { notFoundHandler } from '../exceptions/index.js';
-import { env } from '../config/validateEnv.js';
-import { createAuthMiddleware } from '../middleware/authMiddleware.js';
-import logger from '../utils/logger.js';
-import morganMiddleware from '../middleware/morganLogger.js';
+import express from "express";
+import cors from "cors";
+import cookieParser from "cookie-parser";
+import http from "http";
+import { initializeSocket } from "./socket.js";
+import { setupShutdownHandler } from "../exceptions/index.js";
+import { errorHandler } from "../exceptions/errorHandler.js";
+import { notFoundHandler } from "../exceptions/index.js";
+import { env } from "../config/validateEnv.js";
+import { createAuthMiddleware } from "../middleware/authMiddleware.js";
+import logger from "../utils/logger.js";
+import morganMiddleware from "../middleware/morganLogger.js";
 
 // Import route handlers
-import AuthRoutes from '../routes/auth.js';
-import UserRoutes from '../routes/user.js';
-import ProjectRoutes from '../routes/projects.js';
-import FileRoutes from '../routes/files.js';
-import CommentRoutes from '../routes/comments.js';
-import FolderRoutes from '../routes/folders.js';
-import SearchRoutes from '../routes/search.js';
+import AuthRoutes from "../routes/auth.js";
+import UserRoutes from "../routes/user.js";
+import ProjectRoutes from "../routes/projects.js";
+import FileRoutes from "../routes/files.js";
+import CommentRoutes from "../routes/comments.js";
+import FolderRoutes from "../routes/folders.js";
+import SearchRoutes from "../routes/search.js";
 
 export class Server {
   constructor(config = {}) {
@@ -26,7 +26,7 @@ export class Server {
     this.config = {
       corsOrigin: env.FRONTEND_ORIGIN,
       cookieSecret: env.COOKIE_SECRET,
-      ...config
+      ...config,
     };
 
     this.server = http.createServer(this.app);
@@ -42,14 +42,16 @@ export class Server {
     this.app.use(morganMiddleware);
     this.app.use(express.json());
     this.app.use(express.urlencoded({ extended: true }));
-    this.app.use(cors({
-      origin: this.config.corsOrigin,
-      credentials: true
-    }));
+    this.app.use(
+      cors({
+        origin: this.config.corsOrigin,
+        credentials: true,
+      })
+    );
     this.app.use(cookieParser(this.config.cookieSecret));
 
-    this.app.get('/health', (req, res) => {
-      res.status(200).json({ status: 'ok' });
+    this.app.get("/health", (req, res) => {
+      res.status(200).json({ status: "ok" });
     });
   }
 
@@ -66,19 +68,19 @@ export class Server {
       folders: FolderRoutes({ db, session }),
       files: FileRoutes({ db, session }),
       comments: CommentRoutes({ db, session }),
-      search: SearchRoutes({ db, session })
+      search: SearchRoutes({ db, session }),
     };
 
     // Public routes (no authentication required)
-    this.app.use('/auth', routes.auth);
+    this.app.use("/auth", routes.auth);
 
     // Protected routes (authentication required)
-    this.app.use('/users', this.auth.authenticate, routes.users);
-    this.app.use('/projects', this.auth.authenticate, routes.projects);
-    this.app.use('/folders', this.auth.authenticate, routes.folders);
-    this.app.use('/files', this.auth.authenticate, routes.files);
-    this.app.use('/comments', this.auth.authenticate, routes.comments);
-    this.app.use('/search', this.auth.authenticate, routes.search);
+    this.app.use("/users", this.auth.authenticate, routes.users);
+    this.app.use("/projects", this.auth.authenticate, routes.projects);
+    this.app.use("/folders", this.auth.authenticate, routes.folders);
+    this.app.use("/files", this.auth.authenticate, routes.files);
+    this.app.use("/comments", this.auth.authenticate, routes.comments);
+    this.app.use("/search", this.auth.authenticate, routes.search);
 
     // Error handling
     this.app.use(notFoundHandler);

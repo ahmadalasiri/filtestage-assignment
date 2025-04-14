@@ -12,7 +12,7 @@ export const setupShutdownHandler = (server, client) => {
     logger.info("👋 SIGINT RECEIVED. Shutting down gracefully");
 
     try {
-      // Close server to stop accepting new connections
+      // Close server to stop accepting new requests
       server.close(() => {
         logger.info("HTTP server closed.");
       });

@@ -1,6 +1,5 @@
 /**
- * ApiError class for handling operational errors
- * Operational errors are errors that can be predicted and handled properly
+ * ApiError class for handling operational errors (e.g., invalid input, not found, etc.)
  */
 export class ApiError extends Error {
   /**
@@ -11,9 +10,9 @@ export class ApiError extends Error {
   constructor(statusCode, message) {
     super(message);
     this.statusCode = statusCode;
-    this.status = `${statusCode}`.startsWith('4') ? 'fail' : 'error';
+    this.status = `${statusCode}`.startsWith("4") ? "fail" : "error";
     this.isOperational = true;
-    
+
     // Capture stack trace
     Error.captureStackTrace(this, this.constructor);
   }
