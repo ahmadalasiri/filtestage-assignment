@@ -1,4 +1,4 @@
-import { ApiError } from '../exceptions/ApiError.js';
+import { ApiError } from "../exceptions/ApiError.js";
 
 /**
  * Authentication middleware factory
@@ -10,7 +10,7 @@ export const createAuthMiddleware = (session) => {
     try {
       const sessionData = await session.get(req);
       if (!sessionData || !sessionData.userId) {
-        throw new ApiError(401, 'Unauthorized - Authentication required');
+        throw new ApiError(401, "Unauthorized - Authentication required");
       }
 
       req.user = { userId: sessionData.userId };
@@ -20,8 +20,23 @@ export const createAuthMiddleware = (session) => {
     }
   };
 
+  /**
+   * Helper function to get user ID from request
+   * This is used by the socket service to help identify users
+   * @param {Object} req - Express request object
+   * @returns {String|null} User ID if authenticated, null otherwise
+   */
+  const getUserFromRequest = async (req) => {
+    try {
+      const sessionData = await session.get(req);
+      return sessionData?.userId || null;
+    } catch (error) {
+      return null;
+    }
+  };
 
   return {
     authenticate,
+    getUserFromRequest,
   };
 };
