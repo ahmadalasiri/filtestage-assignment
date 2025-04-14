@@ -1,47 +1,51 @@
 /**
  * Utility function to convert URLs in text to clickable links
  * @param {string} text - The text to process
- * @returns {Array} - Array of React elements with linkified content
+ * @returns {Array|string} - Either the original string (if no URLs) or array of text/link objects
  */
 export function linkifyText(text) {
-  if (!text) return '';
-  
+  if (!text) return "";
+
   // Regular expression to match URLs
-  // This regex matches http, https, and www. URLs
   const urlRegex = /(https?:\/\/[^\s]+)|(www\.[^\s]+)/g;
-  
-  // Split the text by URLs
-  const parts = text.split(urlRegex);
-  
-  // Find all URLs in the text
-  const urls = text.match(urlRegex) || [];
-  
-  // Combine parts and URLs into a single array
-  const result = [];
-  let urlIndex = 0;
-  
-  for (let i = 0; i < parts.length; i++) {
-    // Add text part if it exists
-    if (parts[i]) {
-      result.push(parts[i]);
-    }
-    
-    // Add URL if available
-    if (urlIndex < urls.length && (i % 3 === 0 || i % 3 === 1)) {
-      const url = urls[urlIndex];
-      const href = url.startsWith('www.') ? `https://${url}` : url;
-      
-      // Add URL as a link
-      result.push({
-        type: 'link',
-        href,
-        text: url,
-        key: `link-${urlIndex}`
-      });
-      
-      urlIndex++;
-    }
+
+  // If no URLs found, return the text as is
+  if (!text.match(urlRegex)) {
+    return text;
   }
-  
-  return result;
+
+  // Split the text into segments (text and URLs)
+  const segments = [];
+
+  // Store the starting position for the next text segment
+  let lastIndex = 0;
+
+  // Find all URL matches and build the segments array
+  text.replace(urlRegex, (match, http, www, offset) => {
+    // If there's text before this URL, add it to segments
+    if (offset > lastIndex) {
+      segments.push(text.substring(lastIndex, offset));
+    }
+
+    // Create link object for the URL
+    segments.push({
+      type: "link",
+      href: match.startsWith("www.") ? `https://${match}` : match,
+      text: match,
+      key: `link-${offset}`,
+    });
+
+    // Update the position for the next text segment
+    lastIndex = offset + match.length;
+
+    // This return value is ignored, we're just using replace as a convenient iterator
+    return match;
+  });
+
+  // Add any remaining text after the last URL
+  if (lastIndex < text.length) {
+    segments.push(text.substring(lastIndex));
+  }
+
+  return segments;
 }
