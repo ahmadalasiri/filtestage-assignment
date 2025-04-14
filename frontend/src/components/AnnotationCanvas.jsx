@@ -1,31 +1,5 @@
 import React, { useRef, useState, useEffect } from "react";
-import { Box, IconButton, Tooltip } from "@mui/material";
-import { styled } from "@mui/material/styles";
-import BrushIcon from "@mui/icons-material/Brush";
-import UndoIcon from "@mui/icons-material/Undo";
-import ClearIcon from "@mui/icons-material/Clear";
-import PaletteIcon from "@mui/icons-material/Palette";
-
-const ColorButton = styled(IconButton)(({ theme, color, selected }) => ({
-  backgroundColor: color,
-  margin: theme.spacing(0.5),
-  width: 24,
-  height: 24,
-  border: selected ? "2px solid black" : "none",
-  "&:hover": {
-    backgroundColor: color,
-    opacity: 0.8,
-  },
-}));
-
-const COLORS = [
-  "#FF0000", // Red
-  "#00FF00", // Green
-  "#0000FF", // Blue
-  "#FFFF00", // Yellow
-  "#FF00FF", // Magenta
-  "#00FFFF", // Cyan
-];
+import { Box } from "@mui/material";
 
 const BRUSH_SIZES = [2, 4, 6, 8];
 
@@ -43,9 +17,7 @@ const AnnotationCanvas = ({
   const imageRef = useRef(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [context, setContext] = useState(null);
-  const [color, setColor] = useState(COLORS[0]);
   const [brushSize, setBrushSize] = useState(BRUSH_SIZES[1]);
-  const [showColorPicker, setShowColorPicker] = useState(false);
   const [history, setHistory] = useState([]);
   const [currentStep, setCurrentStep] = useState(-1);
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -154,6 +126,8 @@ const AnnotationCanvas = ({
     const { offsetX, offsetY } = getCoordinates(e);
 
     context.lineTo(offsetX, offsetY);
+    // Use the globally set color if available, or fall back to red
+    const color = window.selectedAnnotationColor || "#FF0000";
     context.strokeStyle = color;
     context.lineWidth = brushSize;
     context.lineCap = "round";
@@ -206,96 +180,9 @@ const AnnotationCanvas = ({
     };
   };
 
-  // Undo last action
-  const handleUndo = () => {
-    if (currentStep <= 0 || !context) return;
-
-    const newStep = currentStep - 1;
-    setCurrentStep(newStep);
-
-    const img = new Image();
-    img.src = history[newStep];
-    img.onload = () => {
-      context.clearRect(0, 0, width, height);
-      context.drawImage(img, 0, 0, width, height);
-
-      // Notify parent component of the annotation
-      if (onAnnotationChange) {
-        onAnnotationChange(history[newStep]);
-      }
-    };
-  };
-
-  // Clear the canvas
-  const handleClear = () => {
-    if (!context) return;
-
-    context.clearRect(0, 0, width, height);
-    saveCanvasState();
-  };
-
   // Render the component
   return (
-    <Box
-      sx={{ display: "flex", flexDirection: "column", alignItems: "center" }}
-    >
-      <Box sx={{ display: "flex", mb: 1 }}>
-        <Tooltip title="Brush">
-          <IconButton color="primary" sx={{ mr: 1 }}>
-            <BrushIcon />
-          </IconButton>
-        </Tooltip>
-
-        <Tooltip title="Color">
-          <IconButton
-            onClick={() => setShowColorPicker(!showColorPicker)}
-            sx={{
-              mr: 1,
-              backgroundColor: color,
-              "&:hover": {
-                backgroundColor: color,
-                opacity: 0.8,
-              },
-            }}
-          >
-            <PaletteIcon sx={{ color: "#fff" }} />
-          </IconButton>
-        </Tooltip>
-
-        <Tooltip title="Undo">
-          <span>
-            <IconButton
-              onClick={handleUndo}
-              disabled={currentStep <= 0}
-              sx={{ mr: 1 }}
-            >
-              <UndoIcon />
-            </IconButton>
-          </span>
-        </Tooltip>
-
-        <Tooltip title="Clear">
-          <span>
-            <IconButton onClick={handleClear} disabled={currentStep <= 0}>
-              <ClearIcon />
-            </IconButton>
-          </span>
-        </Tooltip>
-      </Box>
-
-      {showColorPicker && (
-        <Box sx={{ display: "flex", mb: 1 }}>
-          {COLORS.map((c) => (
-            <ColorButton
-              key={c}
-              color={c}
-              selected={c === color}
-              onClick={() => setColor(c)}
-            />
-          ))}
-        </Box>
-      )}
-
+    <Box sx={{ display: "flex", position: "relative" }}>
       {imageLoaded && (
         <Box sx={{ position: "relative" }}>
           <Box

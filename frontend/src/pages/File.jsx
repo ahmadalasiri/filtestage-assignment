@@ -22,6 +22,7 @@ import {
   Tab,
   Snackbar,
   Alert,
+  Paper,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import ReplyIcon from "@mui/icons-material/Reply";
@@ -52,6 +53,7 @@ import MentionHighlighter from "../components/MentionHighlighter";
 import MentionInput from "../components/MentionInput";
 import AnnotationCanvas from "../components/AnnotationCanvas";
 import { useFileSocket } from "../services/socketService";
+import PaletteIcon from "@mui/icons-material/Palette";
 
 // Reply form component
 const ReplyForm = ({ fileId, parentId, onCancel }) => {
@@ -1184,6 +1186,18 @@ const FileHeader = ({ file, onToggleAnnotationMode, isAnnotationMode }) => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [showDeadlineDialog, setShowDeadlineDialog] = useState(false);
   const [showUploadVersionDialog, setShowUploadVersionDialog] = useState(false);
+  const [showColorPicker, setShowColorPicker] = useState(false);
+  const [selectedColor, setSelectedColor] = useState("#FF0000"); // Default red color
+  const colorPickerRef = useRef(null);
+
+  const COLORS = [
+    "#FF0000", // Red
+    "#00FF00", // Green
+    "#0000FF", // Blue
+    "#FFFF00", // Yellow
+    "#FF00FF", // Magenta
+    "#00FFFF", // Cyan
+  ];
 
   const handleMenuOpen = (event) => {
     setAnchorEl(event.currentTarget);
@@ -1201,6 +1215,11 @@ const FileHeader = ({ file, onToggleAnnotationMode, isAnnotationMode }) => {
   const handleUploadVersion = () => {
     handleMenuClose();
     setShowUploadVersionDialog(true);
+  };
+
+  // Toggle color picker visibility
+  const handleToggleColorPicker = () => {
+    setShowColorPicker(!showColorPicker);
   };
 
   // Format deadline for display
@@ -1222,6 +1241,23 @@ const FileHeader = ({ file, onToggleAnnotationMode, isAnnotationMode }) => {
   };
 
   const deadlineInfo = formatDeadline();
+
+  // Close color picker when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (
+        colorPickerRef.current &&
+        !colorPickerRef.current.contains(event.target)
+      ) {
+        setShowColorPicker(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   return (
     <Box
@@ -1262,16 +1298,79 @@ const FileHeader = ({ file, onToggleAnnotationMode, isAnnotationMode }) => {
         )}
       </Box>
 
-      <Box sx={{ display: "flex", alignItems: "center" }}>
+      <Box sx={{ display: "flex", alignItems: "center", position: "relative" }}>
+        {/* Annotation button */}
         <Button
           startIcon={<BrushIcon />}
           variant={isAnnotationMode ? "contained" : "outlined"}
           color={isAnnotationMode ? "secondary" : "primary"}
           onClick={onToggleAnnotationMode}
-          sx={{ mr: 2 }}
+          sx={{ mr: 1 }}
         >
           {isAnnotationMode ? "Exit Annotation Mode" : "Annotate"}
         </Button>
+
+        {/* Only show color picker button in annotation mode */}
+        {isAnnotationMode && (
+          <Tooltip title="Select Color">
+            <IconButton
+              onClick={handleToggleColorPicker}
+              sx={{
+                mr: 2,
+                backgroundColor: selectedColor,
+                "&:hover": {
+                  backgroundColor: selectedColor,
+                  opacity: 0.8,
+                },
+                width: 40,
+                height: 40,
+              }}
+            >
+              <PaletteIcon sx={{ color: "#fff" }} />
+            </IconButton>
+          </Tooltip>
+        )}
+
+        {/* Color picker dropdown */}
+        {showColorPicker && (
+          <Paper
+            ref={colorPickerRef}
+            elevation={3}
+            sx={{
+              position: "absolute",
+              top: 60,
+              right: 10,
+              zIndex: 100,
+              p: 1,
+              display: "flex",
+              flexWrap: "wrap",
+              width: 120,
+              justifyContent: "center",
+            }}
+          >
+            {COLORS.map((color) => (
+              <IconButton
+                key={color}
+                sx={{
+                  backgroundColor: color,
+                  width: 30,
+                  height: 30,
+                  m: 0.5,
+                  border: selectedColor === color ? "2px solid black" : "none",
+                  "&:hover": {
+                    backgroundColor: color,
+                    opacity: 0.8,
+                  },
+                }}
+                onClick={() => {
+                  setSelectedColor(color);
+                  window.selectedAnnotationColor = color; // Make color available globally
+                  setShowColorPicker(false);
+                }}
+              />
+            ))}
+          </Paper>
+        )}
 
         <IconButton onClick={handleMenuOpen}>
           <MoreVertIcon />
