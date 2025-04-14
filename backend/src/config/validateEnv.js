@@ -4,7 +4,7 @@ import { cleanEnv, str, port, url } from 'envalid';
 config();
 
 export const env = cleanEnv(process.env, {
-  PORT: port({ default: 4000 }),
+  PORT: port({ default: 3001 }),
   NODE_ENV: str({ choices: ['development', 'production', 'testing'], default: 'development' }),
   MONGO_URI: url(),
   FRONTEND_ORIGIN: url(),
