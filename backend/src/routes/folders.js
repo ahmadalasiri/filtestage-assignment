@@ -13,16 +13,18 @@ export default function FolderRoutes({ db, session }) {
       throw new ApiError(401, "Unauthorized");
     }
 
-    const { name, parentFolderId } = z.object({
-      name: z.string(),
-      parentFolderId: z.string().nullable()
-    }).parse(req.body);
+    const { name, parentFolderId } = z
+      .object({
+        name: z.string(),
+        parentFolderId: z.string().nullable(),
+      })
+      .parse(req.body);
 
     const folder = {
       authorId: userId,
       name,
       createdAt: new Date(),
-      parentFolderId: parentFolderId ? new ObjectId(parentFolderId) : null
+      parentFolderId: parentFolderId ? new ObjectId(parentFolderId) : null,
     };
 
     const { insertedId } = await db.collection("folders").insertOne(folder);
@@ -38,10 +40,14 @@ export default function FolderRoutes({ db, session }) {
       throw new ApiError(401, "Unauthorized");
     }
 
-    const { folderId } = z.object({ folderId: StringObjectId }).parse(req.params);
-    const { name } = z.object({
-      name: z.string().optional(),
-    }).parse(req.body);
+    const { folderId } = z
+      .object({ folderId: StringObjectId })
+      .parse(req.params);
+    const { name } = z
+      .object({
+        name: z.string().optional(),
+      })
+      .parse(req.body);
 
     const folder = await db.collection("folders").findOne({ _id: folderId });
     if (!folder) {
@@ -49,17 +55,21 @@ export default function FolderRoutes({ db, session }) {
     }
 
     if (!folder.authorId.equals(userId)) {
-      throw new ApiError(403, "Forbidden: You don't have permission to modify this folder");
+      throw new ApiError(
+        403,
+        "Forbidden: You don't have permission to modify this folder"
+      );
     }
 
     const update = {};
     if (name !== undefined) update.name = name;
-    await db.collection("folders").updateOne(
-      { _id: folderId },
-      { $set: update }
-    );
+    await db
+      .collection("folders")
+      .updateOne({ _id: folderId }, { $set: update });
 
-    res.status(200).json(await db.collection("folders").findOne({ _id: folderId }));
+    res
+      .status(200)
+      .json(await db.collection("folders").findOne({ _id: folderId }));
   });
 
   // Get all folders with hierarchy and projects
@@ -71,32 +81,26 @@ export default function FolderRoutes({ db, session }) {
 
     const folders = await db
       .collection("folders")
-      .find(
-        { authorId: userId },
-        { sort: { name: 1 } }
-      )
+      .find({ authorId: userId })
       .toArray();
 
     const projects = await db
       .collection("projects")
-      .find(
-        { $or: [{ authorId: userId }, { reviewers: userId }] },
-        { sort: { name: 1 } }
-      )
+      .find({ $or: [{ authorId: userId }, { reviewers: userId }] })
       .toArray();
 
     const folderMap = {};
-    folders.forEach(folder => {
+    folders.forEach((folder) => {
       folderMap[folder._id.toString()] = {
         ...folder,
         children: [],
-        projects: []
+        projects: [],
       };
     });
 
     const rootFolders = [];
 
-    folders.forEach(folder => {
+    folders.forEach((folder) => {
       const folderId = folder._id.toString();
       if (folder.parentFolderId) {
         const parentId = folder.parentFolderId.toString();
@@ -110,7 +114,7 @@ export default function FolderRoutes({ db, session }) {
       }
     });
 
-    projects.forEach(project => {
+    projects.forEach((project) => {
       if (project.folderId) {
         const folderId = project.folderId.toString();
         if (folderMap[folderId]) {
@@ -121,7 +125,7 @@ export default function FolderRoutes({ db, session }) {
 
     res.status(200).json({
       folders: rootFolders,
-      allFolders: folders
+      allFolders: folders,
     });
   });
 

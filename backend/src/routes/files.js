@@ -76,7 +76,7 @@ export default function FileRoutes({ db, session }) {
       !project.authorId.equals(userId) &&
       !project.reviewers.some((reviewer) => reviewer.equals(userId))
     ) {
-      throw new ForbiddenError();
+      throw new ApiError(403, "Forbidden");
     }
 
     res.json(

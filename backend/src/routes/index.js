@@ -1,10 +1,10 @@
-import AuthRoutes from './auth.js';
-import UserRoutes from './user.js';
-import ProjectRoutes from './projects.js';
-import FileRoutes from './files.js';
-import CommentRoutes from './comments.js';
-import FolderRoutes from './folders.js';
-import SearchRoutes from './search.js';
+import AuthRoutes from "./auth.js";
+import UserRoutes from "./user.js";
+import ProjectRoutes from "./projects.js";
+import FileRoutes from "./files.js";
+import CommentRoutes from "./comments.js";
+import FolderRoutes from "./folders.js";
+import SearchRoutes from "./search.js";
 
 /**
  * Factory for creating route handlers
@@ -24,7 +24,7 @@ export class RouteFactory {
       folders: FolderRoutes({ db, session }),
       files: FileRoutes({ db, session }),
       comments: CommentRoutes({ db, session }),
-      search: SearchRoutes({ db, session })
+      search: SearchRoutes({ db, session }),
     };
   }
 }
