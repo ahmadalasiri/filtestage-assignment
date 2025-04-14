@@ -7,8 +7,6 @@ morgan.token("body", (req) => {
 
     // Filter out sensitive fields
     if (filteredBody.password) filteredBody.password = "[FILTERED]";
-    if (filteredBody.token) filteredBody.token = "[FILTERED]";
-    if (filteredBody.cookie) filteredBody.cookie = "[FILTERED]";
 
     return JSON.stringify(filteredBody);
   }
