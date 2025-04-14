@@ -156,3 +156,28 @@ export const useFileSocket = (fileId, onNewComment, userId) => {
 
   return { isConnected };
 };
+
+/**
+ * Emit a new comment to all users in a file room
+ * @param {object} comment - The comment object to broadcast
+ * @param {string} fileId - The ID of the file the comment belongs to
+ * @returns {boolean} - Whether the emission was successful
+ */
+export const emitNewComment = (comment, fileId) => {
+  const socket = getSocket();
+  if (!socket || !socket.connected) {
+    console.error("Socket not connected, can't emit new comment");
+    return false;
+  }
+
+  try {
+    socket.emit("new-comment", {
+      comment,
+      fileId,
+    });
+    return true;
+  } catch (error) {
+    console.error("Error emitting new comment:", error);
+    return false;
+  }
+};

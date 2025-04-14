@@ -1,13 +1,8 @@
 import { z } from "zod";
 import express from "express";
 import { ApiError } from "../exceptions/ApiError.js";
-import EventEmitter from "node:events";
-
 import { StringObjectId } from "../schemas.js";
 import { handleCommentMentions } from "../services/mentionService.js";
-
-// Create an event emitter instance that will be exported
-export const commentEvents = new EventEmitter();
 
 export default function CommentRoutes({ db, session }) {
   const router = express.Router();
@@ -132,14 +127,10 @@ export default function CommentRoutes({ db, session }) {
     const author = await db.collection("users").findOne({ _id: userId });
     const commentWithAuthor = { ...newComment, author };
 
-    commentEvents.emit("new-comment", {
-      comment: commentWithAuthor,
-      fileId: fileId.toString(),
-    });
-
+    // Process mentions
     await handleCommentMentions(db, newComment);
 
-    res.status(201).json(newComment);
+    res.status(201).json(commentWithAuthor);
   });
 
   return router;

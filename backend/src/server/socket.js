@@ -1,6 +1,5 @@
 import { Server as SocketServer } from "socket.io";
 import { env } from "../config/validateEnv.js";
-import { commentEvents } from "../routes/comments.js";
 
 let io;
 // Map to store user socket connections
@@ -60,17 +59,19 @@ export const initializeSocket = (server) => {
       socket.leave(`file-${fileId}`);
     });
 
+    // Handle new comment from client
+    socket.on("new-comment", ({ comment, fileId }) => {
+      console.log(`Client ${socket.id} sent a new comment for file: ${fileId}`);
+
+      // Broadcast to all other users in the file room
+      socket.to(`file-${fileId}`).emit("new-comment", comment);
+    });
+
     socket.on("disconnect", () => {
       console.log("Client disconnected:", socket.id);
       // Clean up the socket-user mapping
       socketUserMap.delete(socket.id);
     });
-  });
-
-  // Listen for new comment events from the EventEmitter
-  commentEvents.on("new-comment", ({ comment, fileId }) => {
-    if (!io) return;
-    io.to(`file-${fileId}`).emit("new-comment", comment);
   });
 
   return io;
