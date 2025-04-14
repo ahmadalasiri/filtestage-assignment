@@ -5,7 +5,6 @@ import path from "path";
 import fs from "fs";
 import { ApiError } from "../exceptions/ApiError.js";
 
-
 export default function FileRoutes({ db, session }) {
   const router = express.Router();
 
@@ -18,7 +17,6 @@ export default function FileRoutes({ db, session }) {
   router.post("/", upload.single("file"), async (req, res) => {
     const { userId } = await session.get(req);
     if (!userId) {
-
     }
 
     if (!["image/jpeg", "image/png"].includes(req.file.mimetype)) {
@@ -39,7 +37,9 @@ export default function FileRoutes({ db, session }) {
     if (req.body.deadline) {
       deadline = new Date(req.body.deadline);
       if (isNaN(deadline) || deadline <= new Date()) {
-        throw new ValidationError("Deadline must be a valid future date and time");
+        throw new ValidationError(
+          "Deadline must be a valid future date and time"
+        );
       }
     }
 
@@ -83,7 +83,7 @@ export default function FileRoutes({ db, session }) {
       await db
         .collection("files")
         .find({ projectId: project._id }, { sort: { createdAt: 1 } })
-        .toArray(),
+        .toArray()
     );
   });
 
@@ -93,11 +93,9 @@ export default function FileRoutes({ db, session }) {
       throw new ApiError(401, "Not authenticated");
     }
 
-    const file = await db
-      .collection("files")
-      .findOne({
-        _id: new ObjectId(req.params.id)
-      });
+    const file = await db.collection("files").findOne({
+      _id: new ObjectId(req.params.id),
+    });
     if (!file) {
       throw new ApiError(404, "File not found");
     }
@@ -110,6 +108,7 @@ export default function FileRoutes({ db, session }) {
       !file.authorId.equals(userId) &&
       !project.reviewers.some((reviewer) => reviewer.equals(userId))
     ) {
+      console.log(file.authorId, userId, project.reviewers);
       throw new ApiError(403, "Forbidden");
     }
 
@@ -167,10 +166,9 @@ export default function FileRoutes({ db, session }) {
       }
     }
 
-    await db.collection("files").updateOne(
-      { _id: fileId },
-      { $set: { deadline } }
-    );
+    await db
+      .collection("files")
+      .updateOne({ _id: fileId }, { $set: { deadline } });
 
     const updatedFile = await db.collection("files").findOne({ _id: fileId });
     res.json(updatedFile);
@@ -182,40 +180,43 @@ export default function FileRoutes({ db, session }) {
       throw new ApiError(401, "Not authenticated");
     }
 
-    if (!req.file || ![
-      "image/jpeg",
-      "image/png"
-    ].includes(req.file.mimetype)) {
+    if (!req.file || !["image/jpeg", "image/png"].includes(req.file.mimetype)) {
       throw new ApiError(400, "Invalid file type");
     }
 
     const originalFileId = new ObjectId(req.params.id);
-    const originalFile = await db.collection("files").findOne({ _id: originalFileId });
+    const originalFile = await db
+      .collection("files")
+      .findOne({ _id: originalFileId });
 
     if (!originalFile) {
-      throw new ApiError(404, "Original file not found")
+      throw new ApiError(404, "Original file not found");
     }
 
-    const project = await db.collection("projects").findOne({ _id: originalFile.projectId });
+    const project = await db
+      .collection("projects")
+      .findOne({ _id: originalFile.projectId });
     if (!project) {
-      throw new ApiError(404, "Project not found")
+      throw new ApiError(404, "Project not found");
     }
 
-    if (!project.authorId.equals(userId) &&
-      !project.reviewers.some(reviewer => reviewer.equals(userId))) {
-
+    if (
+      !project.authorId.equals(userId) &&
+      !project.reviewers.some((reviewer) => reviewer.equals(userId))
+    ) {
     }
 
     const latestVersion = await db
       .collection("files")
       .find({
-        originalFileId: originalFileId
+        originalFileId: originalFileId,
       })
       .sort({ version: -1 })
       .limit(1)
       .toArray();
 
-    const nextVersion = latestVersion.length > 0 ? latestVersion[0].version + 1 : 2;
+    const nextVersion =
+      latestVersion.length > 0 ? latestVersion[0].version + 1 : 2;
 
     const { insertedId } = await db.collection("files").insertOne({
       projectId: originalFile.projectId,

@@ -13,14 +13,16 @@ export default function ProjectRoutes({ db, session }) {
       throw new ApiError(401, "Unauthorized");
     }
 
-    const { name, folderId } = z.object({ 
-      name: z.string(),
-      folderId: z.string()
-    }).parse(req.body);
+    const { name, folderId } = z
+      .object({
+        name: z.string(),
+        folderId: z.string(),
+      })
+      .parse(req.body);
 
     // Verify folder exists
     const folder = await db.collection("folders").findOne({
-      _id: new ObjectId(folderId)
+      _id: new ObjectId(folderId),
     });
 
     if (!folder) {
@@ -30,9 +32,9 @@ export default function ProjectRoutes({ db, session }) {
     const { insertedId } = await db.collection("projects").insertOne({
       authorId: userId,
       name,
-      reviewers: [],
+      reviewers: [userId],
       createdAt: new Date(),
-      folderId: new ObjectId(folderId)
+      folderId: new ObjectId(folderId),
     });
 
     res
@@ -50,7 +52,7 @@ export default function ProjectRoutes({ db, session }) {
       .collection("projects")
       .find(
         { $or: [{ authorId: userId }, { reviewers: userId }] },
-        { sort: { createdAt: 1 } },
+        { sort: { createdAt: 1 } }
       )
       .toArray();
 
@@ -73,7 +75,10 @@ export default function ProjectRoutes({ db, session }) {
       throw new ApiError(404, "Project not found");
     }
     if (!project.authorId.equals(userId)) {
-      throw new ApiError(403, "Forbidden: You don't have permission to modify this project");
+      throw new ApiError(
+        403,
+        "Forbidden: You don't have permission to modify this project"
+      );
     }
 
     const existingReviewer = await db.collection("users").findOne({ email });

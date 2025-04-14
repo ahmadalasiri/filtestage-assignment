@@ -1,10 +1,13 @@
 import { z } from "zod";
 import express from "express";
 import { ApiError } from "../exceptions/ApiError.js";
+import EventEmitter from "node:events";
 
 import { StringObjectId } from "../schemas.js";
 import { processMentions, formatMentions } from "../services/mentionService.js";
-import { getSocketIO } from "../server/socket.js";
+
+// Create an event emitter instance that will be exported
+export const commentEvents = new EventEmitter();
 
 export default function CommentRoutes({ db, session }) {
   const router = express.Router();
@@ -17,8 +20,8 @@ export default function CommentRoutes({ db, session }) {
 
     const {
       fileId,
-      page = "1",
-      limit = "20",
+      page = 1,
+      limit = 20,
     } = z
       .object({
         fileId: StringObjectId,
@@ -27,12 +30,10 @@ export default function CommentRoutes({ db, session }) {
       })
       .parse(req.query);
 
-    // Convert pagination parameters to numbers and validate
     const pageNum = parseInt(page, 10) || 1;
     const limitNum = Math.min(parseInt(limit, 10) || 20, 100); // Max 100 items per page
     const skip = (pageNum - 1) * limitNum;
 
-    // Get all comments for this file
     const allComments = await db
       .collection("comments")
       .find({ fileId })
@@ -66,7 +67,7 @@ export default function CommentRoutes({ db, session }) {
 
     // Sort the outer array by the creation date of the first comment in each group (parent comment)
     nestedComments.sort(
-      (a, b) => new Date(a[0].createdAt) - new Date(b[0].createdAt),
+      (a, b) => new Date(a[0].createdAt) - new Date(b[0].createdAt)
     );
 
     // Apply pagination
@@ -133,62 +134,72 @@ export default function CommentRoutes({ db, session }) {
       .collection("comments")
       .insertOne(commentData);
 
-    const newComment = await db.collection("comments").findOne({ _id: insertedId });
+    const newComment = await db
+      .collection("comments")
+      .findOne({ _id: insertedId });
 
     // Get author information to include with the comment
     const author = await db.collection("users").findOne({ _id: userId });
     const commentWithAuthor = { ...newComment, author };
 
-    // Emit real-time event to all users viewing this file
+    // Emit event instead of directly using socket.io
     try {
-      const io = getSocketIO();
-
-      // Emit to specific room
-      io.to(`file-${fileId}`).emit('new-comment', commentWithAuthor);
-
-      // Also emit to all connected clients as a fallback
-      io.emit('global-new-comment', {
-        ...commentWithAuthor,
-        fileId: fileId.toString()
+      // Emit the event with the comment data, fileId, and userId (for excluding sender)
+      commentEvents.emit("new-comment", {
+        comment: commentWithAuthor,
+        fileId: fileId.toString(),
+        userId: userId.toString(),
       });
     } catch (error) {
-      console.error('Socket.IO error when emitting comment:', error.message);
-      // Continue with the comment creation process even if socket fails
+      console.error("Error emitting comment event:", error.message);
+      // Continue with the comment creation process even if event emission fails
     }
 
     // Process mentions and send notifications
     try {
       // Check if the comment contains any mentions
-      if (body.includes('@')) {
+      if (body.includes("@")) {
         // Get file and project information for the email template
         const file = await db.collection("files").findOne({ _id: fileId });
         if (!file) {
-          throw new ApiError(404, 'File not found');
+          throw new ApiError(404, "File not found");
         }
 
-        const project = await db.collection("projects").findOne({ _id: file.projectId });
+        const project = await db
+          .collection("projects")
+          .findOne({ _id: file.projectId });
         if (!project) {
-          throw new ApiError(404, 'Project not found');
+          throw new ApiError(404, "Project not found");
         }
 
-        const commentAuthor = await db.collection("users").findOne({ _id: userId });
+        const commentAuthor = await db
+          .collection("users")
+          .findOne({ _id: userId });
         if (!commentAuthor) {
-          throw new ApiError(404, 'Author not found');
+          throw new ApiError(404, "Author not found");
         }
 
         // Process mentions and send notifications
-        const mentionResults = await processMentions(db, newComment, file, project, commentAuthor);
+        const mentionResults = await processMentions(
+          db,
+          newComment,
+          file,
+          project,
+          commentAuthor
+        );
 
         // Store mention results in the comment for reference
         if (mentionResults && mentionResults.length > 0) {
-          await db.collection("comments").updateOne(
-            { _id: insertedId },
-            { $set: { mentionNotifications: mentionResults } }
-          );
+          await db
+            .collection("comments")
+            .updateOne(
+              { _id: insertedId },
+              { $set: { mentionNotifications: mentionResults } }
+            );
         }
       }
     } catch (error) {
-      console.error('Error processing mentions:', error.message);
+      console.error("Error processing mentions:", error.message);
       // Continue with the comment creation process
     }
 
