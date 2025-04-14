@@ -1,14 +1,28 @@
 import morgan from "morgan";
 import logger from "../utils/logger.js";
 
-// Removing body token since we don't want to log request bodies
+morgan.token("body", (req) => {
+  if (req.body) {
+    const filteredBody = { ...req.body };
+
+    // Filter out sensitive fields
+    if (filteredBody.password) filteredBody.password = "[FILTERED]";
+    if (filteredBody.token) filteredBody.token = "[FILTERED]";
+    if (filteredBody.cookie) filteredBody.cookie = "[FILTERED]";
+
+    return JSON.stringify(filteredBody);
+  }
+  return "";
+});
+
+// Define custom token for response time in a more readable format
 morgan.token("response-time-formatted", (req, res) => {
   const time = morgan["response-time"](req, res);
   return time ? `${time} ms` : "";
 });
 
-// Modified to remove body content from logs
-const developmentFormat = ":method :url :status :response-time-formatted";
+const developmentFormat =
+  ":method :url :status :response-time-formatted - :body";
 const productionFormat =
   ":remote-addr - :method :url :status :response-time-formatted";
 
