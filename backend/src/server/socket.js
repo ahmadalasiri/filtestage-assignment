@@ -68,20 +68,9 @@ export const initializeSocket = (server) => {
   });
 
   // Listen for new comment events from the EventEmitter
-  commentEvents.on("new-comment", ({ comment, fileId, userId }) => {
+  commentEvents.on("new-comment", ({ comment, fileId }) => {
     if (!io) return;
-
-    console.log(`Received new comment event for file: ${fileId}`);
-
-    // Emit the message to all users in the file room except the sender
-    io.to(`file-${fileId}`)
-      .except(
-        // Find all socket IDs of the sender
-        Array.from(io.sockets.sockets.values())
-          .filter((socket) => socket.data.userId === userId)
-          .map((socket) => socket.id)
-      )
-      .emit("new-comment", comment);
+    io.to(`file-${fileId}`).emit("new-comment", comment);
   });
 
   return io;

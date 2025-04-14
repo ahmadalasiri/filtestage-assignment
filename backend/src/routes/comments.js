@@ -4,7 +4,7 @@ import { ApiError } from "../exceptions/ApiError.js";
 import EventEmitter from "node:events";
 
 import { StringObjectId } from "../schemas.js";
-import { processMentions, formatMentions } from "../services/mentionService.js";
+import { handleCommentMentions } from "../services/mentionService.js";
 
 // Create an event emitter instance that will be exported
 export const commentEvents = new EventEmitter();
@@ -74,7 +74,6 @@ export default function CommentRoutes({ db, session }) {
     const totalGroups = nestedComments.length;
     const paginatedComments = nestedComments.slice(skip, skip + limitNum);
 
-    // Return paginated results with metadata
     res.json({
       comments: paginatedComments,
       pagination: {
@@ -113,20 +112,11 @@ export default function CommentRoutes({ db, session }) {
       createdAt: new Date(),
     };
 
-    // Add annotation if provided
     if (annotation) {
       commentData.annotation = annotation;
     }
 
-    // If this is a reply, add the parentId
     if (parentId) {
-      // Verify the parent comment exists
-      const parentComment = await db
-        .collection("comments")
-        .findOne({ _id: parentId });
-      if (!parentComment) {
-        return res.status(404).json({ message: "Parent comment not found" });
-      }
       commentData.parentId = parentId;
     }
 
@@ -142,66 +132,12 @@ export default function CommentRoutes({ db, session }) {
     const author = await db.collection("users").findOne({ _id: userId });
     const commentWithAuthor = { ...newComment, author };
 
-    // Emit event instead of directly using socket.io
-    try {
-      // Emit the event with the comment data, fileId, and userId (for excluding sender)
-      commentEvents.emit("new-comment", {
-        comment: commentWithAuthor,
-        fileId: fileId.toString(),
-        userId: userId.toString(),
-      });
-    } catch (error) {
-      console.error("Error emitting comment event:", error.message);
-      // Continue with the comment creation process even if event emission fails
-    }
+    commentEvents.emit("new-comment", {
+      comment: commentWithAuthor,
+      fileId: fileId.toString(),
+    });
 
-    // Process mentions and send notifications
-    try {
-      // Check if the comment contains any mentions
-      if (body.includes("@")) {
-        // Get file and project information for the email template
-        const file = await db.collection("files").findOne({ _id: fileId });
-        if (!file) {
-          throw new ApiError(404, "File not found");
-        }
-
-        const project = await db
-          .collection("projects")
-          .findOne({ _id: file.projectId });
-        if (!project) {
-          throw new ApiError(404, "Project not found");
-        }
-
-        const commentAuthor = await db
-          .collection("users")
-          .findOne({ _id: userId });
-        if (!commentAuthor) {
-          throw new ApiError(404, "Author not found");
-        }
-
-        // Process mentions and send notifications
-        const mentionResults = await processMentions(
-          db,
-          newComment,
-          file,
-          project,
-          commentAuthor
-        );
-
-        // Store mention results in the comment for reference
-        if (mentionResults && mentionResults.length > 0) {
-          await db
-            .collection("comments")
-            .updateOne(
-              { _id: insertedId },
-              { $set: { mentionNotifications: mentionResults } }
-            );
-        }
-      }
-    } catch (error) {
-      console.error("Error processing mentions:", error.message);
-      // Continue with the comment creation process
-    }
+    await handleCommentMentions(db, newComment);
 
     res.status(201).json(newComment);
   });
