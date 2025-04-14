@@ -27,7 +27,7 @@ export default function AuthRoutes({ db, session }) {
         .collection("users")
         .updateOne(
           { _id: existingUser._id },
-          { $set: { password: hashedPassword } },
+          { $set: { password: hashedPassword } }
         );
     } else {
       ({ insertedId: userId } = await db
