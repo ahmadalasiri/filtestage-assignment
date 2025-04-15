@@ -32,9 +32,9 @@ services:
     ports:
       - "3001:3001"
     environment:
-      DOMAIN: "localhost"
+      DOMAIN: "filestage.ahmadalasiri.info"
       PORT: 3001
-      FRONTEND_ORIGIN: "http://localhost:3000"
+      FRONTEND_ORIGIN: "https://filestage.ahmadalasiri.info"
       COOKIE_SECRET: "s3cr3t"
       MONGO_URI: "mongodb://root:1234@database:27017"
       SMTP_NAME: "Filestage"
