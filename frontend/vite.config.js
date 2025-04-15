@@ -9,5 +9,6 @@ export default defineConfig({
     host: "0.0.0.0",
     origin: "http://0.0.0.0:3000",
     port: 3000,
+    allowedHosts: ["filestage.ahmadalasiri.info"],
   },
 });
