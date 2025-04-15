@@ -72,6 +72,54 @@ export default function FolderRoutes({ db, session }) {
       .json(await db.collection("folders").findOne({ _id: folderId }));
   });
 
+  // Delete a folder
+  router.delete("/:folderId", async (req, res) => {
+    const { userId } = await session.get(req);
+    if (!userId) {
+      throw new ApiError(401, "Unauthorized");
+    }
+
+    const { folderId } = z
+      .object({ folderId: StringObjectId })
+      .parse(req.params);
+
+    const folder = await db.collection("folders").findOne({ _id: folderId });
+    if (!folder) {
+      throw new ApiError(404, "Folder not found");
+    }
+
+    if (!folder.authorId.equals(userId)) {
+      throw new ApiError(
+        403,
+        "Forbidden: You don't have permission to delete this folder"
+      );
+    }
+
+    // Check if this folder has child folders
+    const childFolders = await db
+      .collection("folders")
+      .find({ parentFolderId: folderId })
+      .toArray();
+
+    if (childFolders.length > 0) {
+      throw new ApiError(400, "Cannot delete folder that contains subfolders");
+    }
+
+    // Check if this folder has projects
+    const projects = await db
+      .collection("projects")
+      .find({ folderId: folderId })
+      .toArray();
+
+    if (projects.length > 0) {
+      throw new ApiError(400, "Cannot delete folder that contains projects");
+    }
+
+    await db.collection("folders").deleteOne({ _id: folderId });
+
+    res.status(204).send();
+  });
+
   // Get all folders with hierarchy and projects
   router.get("/", async (req, res) => {
     const { userId } = await session.get(req);
