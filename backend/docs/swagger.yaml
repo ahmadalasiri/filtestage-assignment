@@ -1,0 +1,730 @@
+openapi: 3.0.0
+info:
+  title: Filestage API
+  description: API documentation for the Filestage application
+  version: 1.0.0
+servers:
+  - url: http://localhost:3001
+    description: Local development server
+  - url: https://api.filestage.ahmadalasiri.info
+    description: Production server
+tags:
+  - name: Authentication
+    description: User authentication endpoints
+  - name: Users
+    description: User management endpoints
+  - name: Projects
+    description: Project management endpoints
+  - name: Files
+    description: File management endpoints
+  - name: Comments
+    description: Comment management endpoints
+  - name: Folders
+    description: Folder management endpoints
+  - name: Search
+    description: Search functionality endpoints
+
+paths:
+  /health:
+    get:
+      summary: Health check endpoint
+      description: Check if the server is running
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+
+  # Authentication Routes
+  /auth/signup:
+    post:
+      tags:
+        - Authentication
+      summary: Register a new user
+      description: Create a new user account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+      responses:
+        "201":
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  userId:
+                    type: string
+        "400":
+          description: Bad request (validation error or user already exists)
+
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Log in to an existing account
+      description: Authenticate with email and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  userId:
+                    type: string
+        "400":
+          description: Invalid credentials
+
+  /auth/session:
+    get:
+      tags:
+        - Authentication
+      summary: Get current session
+      description: Check if user is authenticated
+      responses:
+        "200":
+          description: User is authenticated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  userId:
+                    type: string
+        "401":
+          description: Not authenticated
+
+  /auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: Log out
+      description: End the current user session
+      responses:
+        "200":
+          description: Logout successful
+
+  /auth/remove-account:
+    post:
+      tags:
+        - Authentication
+      summary: Delete account
+      description: Remove the current user account and all associated data
+      responses:
+        "200":
+          description: Account deleted successfully
+        "401":
+          description: Not authenticated
+
+  # Project Routes
+  /projects:
+    post:
+      tags:
+        - Projects
+      summary: Create a new project
+      description: Create a project within a folder
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - folderId
+              properties:
+                name:
+                  type: string
+                folderId:
+                  type: string
+      responses:
+        "201":
+          description: Project created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Project"
+        "401":
+          description: Unauthorized
+        "404":
+          description: Folder not found
+
+    get:
+      tags:
+        - Projects
+      summary: Get all projects
+      description: List all projects the user has access to
+      security:
+        - cookieAuth: []
+      responses:
+        "201":
+          description: List of projects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Project"
+        "401":
+          description: Unauthorized
+
+  /projects/{projectId}/reviewers:
+    post:
+      tags:
+        - Projects
+      summary: Add reviewer to project
+      description: Invite a user to review a project
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        "201":
+          description: Reviewer added successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Project"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - no permission to modify this project
+        "404":
+          description: Project not found
+
+  # File Routes
+  /files:
+    post:
+      tags:
+        - Files
+      summary: Upload a new file
+      description: Upload a file to a project
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+                - projectId
+              properties:
+                file:
+                  type: string
+                  format: binary
+                projectId:
+                  type: string
+                deadline:
+                  type: string
+                  format: date-time
+      responses:
+        "201":
+          description: File uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/File"
+        "400":
+          description: Invalid file type or deadline
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "404":
+          description: Project not found
+
+    get:
+      tags:
+        - Files
+      summary: List files in project
+      description: Get all files in a specific project
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: projectId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of files
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/File"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "404":
+          description: Project not found
+
+  /files/{id}:
+    get:
+      tags:
+        - Files
+      summary: Get file details
+      description: Get metadata for a specific file
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: File details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/File"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "404":
+          description: File not found
+
+  /files/{id}/content:
+    get:
+      tags:
+        - Files
+      summary: Get file content
+      description: Download the actual file content
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: File content
+          content:
+            image/jpeg: {}
+            image/png: {}
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "404":
+          description: File not found
+
+  /files/{id}/deadline:
+    patch:
+      tags:
+        - Files
+      summary: Update file deadline
+      description: Set or update the deadline for a file
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                deadline:
+                  type: string
+                  format: date-time
+                  nullable: true
+      responses:
+        "200":
+          description: Deadline updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/File"
+        "400":
+          description: Invalid date format
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "404":
+          description: File not found
+
+  /files/{id}/versions:
+    post:
+      tags:
+        - Files
+      summary: Upload new file version
+      description: Add a new version of an existing file
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "201":
+          description: File version uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/File"
+        "400":
+          description: Invalid file type
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "404":
+          description: Original file or project not found
+
+  # Comment Routes
+  /comments:
+    post:
+      tags:
+        - Comments
+      summary: Add a comment
+      description: Create a new comment on a file
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - fileId
+                - content
+                - position
+              properties:
+                fileId:
+                  type: string
+                content:
+                  type: string
+                position:
+                  type: object
+                  properties:
+                    x:
+                      type: number
+                    y:
+                      type: number
+                parentId:
+                  type: string
+                  description: ID of the parent comment for replies
+      responses:
+        "201":
+          description: Comment added successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Comment"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "404":
+          description: File not found
+
+    get:
+      tags:
+        - Comments
+      summary: Get comments for a file
+      description: Retrieve all comments for a specific file
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: fileId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of comments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Comment"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "404":
+          description: File not found
+
+  # Folder Routes
+  /folders:
+    post:
+      tags:
+        - Folders
+      summary: Create a folder
+      description: Create a new folder, optionally within a parent folder
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                parentFolderId:
+                  type: string
+                  nullable: true
+      responses:
+        "201":
+          description: Folder created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Folder"
+        "401":
+          description: Unauthorized
+        "404":
+          description: Parent folder not found
+
+    get:
+      tags:
+        - Folders
+      summary: Get all folders
+      description: List all folders the user has access to
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: List of folders
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Folder"
+        "401":
+          description: Unauthorized
+
+  # Search Routes
+  /search:
+    get:
+      tags:
+        - Search
+      summary: Global search
+      description: Search across all accessible projects, files, and comments
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: query
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Search query string
+        - name: filter
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [all, projects, files, comments]
+            default: all
+          description: Filter search results by type
+      responses:
+        "200":
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  projects:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Project"
+                  files:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/File"
+                  comments:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Comment"
+        "401":
+          description: Unauthorized
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sid
+
+  schemas:
+    Project:
+      type: object
+      properties:
+        _id:
+          type: string
+        name:
+          type: string
+        authorId:
+          type: string
+        folderId:
+          type: string
+        reviewers:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    File:
+      type: object
+      properties:
+        _id:
+          type: string
+        name:
+          type: string
+        projectId:
+          type: string
+        authorId:
+          type: string
+        path:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        deadline:
+          type: string
+          format: date-time
+          nullable: true
+        version:
+          type: integer
+        originalFileId:
+          type: string
+          nullable: true
+
+    Comment:
+      type: object
+      properties:
+        _id:
+          type: string
+        fileId:
+          type: string
+        authorId:
+          type: string
+        content:
+          type: string
+        position:
+          type: object
+          properties:
+            x:
+              type: number
+            y:
+              type: number
+        parentId:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    Folder:
+      type: object
+      properties:
+        _id:
+          type: string
+        name:
+          type: string
+        authorId:
+          type: string
+        parentFolderId:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time

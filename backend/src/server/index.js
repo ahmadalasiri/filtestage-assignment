@@ -10,6 +10,9 @@ import { env } from "../config/validateEnv.js";
 import { createAuthMiddleware } from "../middleware/authMiddleware.js";
 import logger from "../utils/logger.js";
 import morganMiddleware from "../middleware/morganLogger.js";
+import path from "path";
+import { fileURLToPath } from "url";
+import { setupSwagger } from "../../docs/swagger-config.js";
 
 // Import route handlers
 import AuthRoutes from "../routes/auth.js";
@@ -20,6 +23,11 @@ import CommentRoutes from "../routes/comments.js";
 import FolderRoutes from "../routes/folders.js";
 import SearchRoutes from "../routes/search.js";
 import morgan from "morgan";
+
+// Get the directory path
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const docsPath = path.join(__dirname, "../../docs");
 
 export class Server {
   constructor(config = {}) {
@@ -40,8 +48,8 @@ export class Server {
   }
 
   configureMiddleware() {
-    // this.app.use(morganMiddleware);
-    this.app.use(morgan("dev"));
+    this.app.use(morganMiddleware);
+    // this.app.use(morgan("dev"));
     this.app.use(express.json());
     this.app.use(express.urlencoded({ extended: true }));
     this.app.use(
@@ -55,6 +63,9 @@ export class Server {
     this.app.get("/health", (req, res) => {
       res.status(200).json({ status: "ok" });
     });
+
+    // Set up Swagger API documentation
+    setupSwagger(this.app);
   }
 
   registerRoutes() {
@@ -103,6 +114,9 @@ export class Server {
       this.server.listen(port, () => {
         logger.info(`Server running on port: ${port}`);
         logger.info(`Environment: ${process.env.NODE_ENV}`);
+        logger.info(
+          `API documentation available at: http://localhost:${port}/api-docs`
+        );
         resolve();
       });
     });

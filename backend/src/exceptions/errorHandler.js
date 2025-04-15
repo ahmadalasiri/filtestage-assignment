@@ -97,18 +97,29 @@ const sendForProd = (err, req, res) => {
 
 // Central error handler middleware
 export const errorHandler = (err, req, res, next) => {
-  err.statusCode = err.statusCode || 500;
-  err.status = err.status || "error";
-  err.message = err.message || "Something went wrong";
+  // Set default values but don't try to modify the original error object directly
+  const statusCode = err.statusCode || 500;
+  const status = err.status || "error";
+  const message = err.message || "Something went wrong";
 
   if (process.env.NODE_ENV === "production") {
-    let error = { ...err };
-    error.message = err.message;
+    let error = {
+      ...err,
+      statusCode,
+      status,
+      message,
+    };
 
     if (err.name === "MulterError") error = handleMulterError(err);
 
     sendForProd(error, req, res);
   } else {
-    sendForDev(err, req, res);
+    const devError = {
+      statusCode,
+      status,
+      message,
+      stack: err.stack,
+    };
+    sendForDev(devError, req, res);
   }
 };
