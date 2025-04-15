@@ -1,11 +1,16 @@
 services:
   frontend:
-    build:
-      context: frontend
-      dockerfile: Dockerfile.prod
-    restart: always
+    build: frontend
     depends_on:
       - backend
+    tty: true
+    develop:
+      watch:
+        - action: sync
+          path: ./frontend
+          target: /frontend/
+        - action: rebuild
+          path: ./frontend/package.json
     environment:
       VITE_BACKEND_ORIGIN: "https://api.filestage.ahmadalasiri.info"
       PORT: 3000
@@ -13,16 +18,20 @@ services:
       - "3000:3000"
 
   backend:
-    build:
-      context: backend
-      dockerfile: Dockerfile.prod
-    restart: always
+    build: backend
     depends_on:
       - database
+    tty: true
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./backend
+          target: /backend/
+        - action: rebuild
+          path: ./backend/package.json
     ports:
       - "3001:3001"
     environment:
-      NODE_ENV: "production"
       DOMAIN: "filestage.ahmadalasiri.info"
       PORT: 3001
       FRONTEND_ORIGIN: "https://filestage.ahmadalasiri.info"
@@ -36,12 +45,8 @@ services:
 
   database:
     image: mongo:5.0
-    restart: always
-    volumes:
-      - mongo_data:/data/db
+    ports:
+      - "27017:27017"
     environment:
       MONGO_INITDB_ROOT_USERNAME: "root"
       MONGO_INITDB_ROOT_PASSWORD: "1234"
-
-volumes:
-  mongo_data:
