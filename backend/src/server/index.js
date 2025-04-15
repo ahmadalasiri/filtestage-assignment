@@ -46,7 +46,7 @@ export class Server {
     this.app.use(express.urlencoded({ extended: true }));
     this.app.use(
       cors({
-        origin: this.config.corsOrigin,
+        origin: [this.config.corsOrigin, "https://filestage.ahmadalasiri.info"],
         credentials: true,
       })
     );
