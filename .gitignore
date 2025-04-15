@@ -22,3 +22,4 @@ dist-ssr
 *.sw?
 z_test
 uploads
+*.env

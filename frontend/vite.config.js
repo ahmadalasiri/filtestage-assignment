@@ -8,6 +8,6 @@ export default defineConfig({
   server: {
     host: "0.0.0.0",
     origin: "http://0.0.0.0:3000",
-    port: process.env.PORT,
+    port: 3000,
   },
 });

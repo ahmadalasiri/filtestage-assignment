@@ -19,6 +19,7 @@ import FileRoutes from "../routes/files.js";
 import CommentRoutes from "../routes/comments.js";
 import FolderRoutes from "../routes/folders.js";
 import SearchRoutes from "../routes/search.js";
+import morgan from "morgan";
 
 export class Server {
   constructor(config = {}) {
@@ -39,7 +40,8 @@ export class Server {
   }
 
   configureMiddleware() {
-    this.app.use(morganMiddleware);
+    // this.app.use(morganMiddleware);
+    this.app.use(morgan("dev"));
     this.app.use(express.json());
     this.app.use(express.urlencoded({ extended: true }));
     this.app.use(
