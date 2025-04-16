@@ -56,7 +56,7 @@ export class Server {
       cors({
         origin: [this.config.corsOrigin, "https://filestage.ahmadalasiri.info"],
         credentials: true,
-      })
+      }),
     );
     this.app.use(cookieParser(this.config.cookieSecret));
 
@@ -115,7 +115,7 @@ export class Server {
         logger.info(`Server running on port: ${port}`);
         logger.info(`Environment: ${process.env.NODE_ENV}`);
         logger.info(
-          `API documentation available at: http://localhost:${port}/api-docs`
+          `API documentation available at: http://localhost:${port}/api-docs`,
         );
         resolve();
       });

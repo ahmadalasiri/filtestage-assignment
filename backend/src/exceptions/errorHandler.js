@@ -28,7 +28,7 @@ const sendForDev = (err, req, res) => {
       ip: req.ip,
       statusCode,
       stack: err.stack,
-    }
+    },
   );
 
   res.status(statusCode).json({
@@ -57,7 +57,7 @@ const sendForProd = (err, req, res) => {
         ip: req.ip,
         statusCode,
         stack: err.stack,
-      }
+      },
     );
   } else {
     logger.warn(
@@ -67,7 +67,7 @@ const sendForProd = (err, req, res) => {
         method: req.method,
         ip: req.ip,
         statusCode,
-      }
+      },
     );
   }
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useCallback, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { backendFetch } from "../backend";
 
@@ -8,7 +8,7 @@ import { backendFetch } from "../backend";
  * @param {string} options.projectId - Current project ID
  * @returns {Object} - Hook methods and state
  */
-export function useMentions({ projectId, onChange }) {
+export function useMentions({ _projectId, onChange }) {
   const [mentionState, setMentionState] = useState({
     isMentioning: false,
     mentionQuery: "",
@@ -74,7 +74,7 @@ export function useMentions({ projectId, onChange }) {
         }
       }
     },
-    [checkForMention, mentionState.isMentioning]
+    [checkForMention, mentionState.isMentioning],
   );
 
   // Handle key events for navigation in mention suggestions
@@ -99,7 +99,7 @@ export function useMentions({ projectId, onChange }) {
         e.preventDefault();
       }
     },
-    [mentionState.isMentioning]
+    [mentionState.isMentioning],
   );
 
   // Handle user selection from the mention suggestions
@@ -124,7 +124,7 @@ export function useMentions({ projectId, onChange }) {
           value.substring(
             mentionState.mentionStartIndex +
               mentionState.mentionQuery.length +
-              1
+              1,
           );
 
         // Set the input value and update the cursor position
@@ -162,7 +162,7 @@ export function useMentions({ projectId, onChange }) {
         console.error("Error selecting user:", error);
       }
     },
-    [mentionState.mentionQuery, mentionState.mentionStartIndex]
+    [mentionState.mentionQuery, mentionState.mentionStartIndex, onChange],
   );
 
   // Close mention suggestions

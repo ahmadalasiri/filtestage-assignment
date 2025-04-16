@@ -39,7 +39,7 @@ test.beforeAll(async ({ browser }) => {
         name: "searchable-test-file.jpg",
         mimeType: "image/jpeg",
         buffer: fs.readFileSync(
-          path.join(process.cwd(), "sample-files/image.jpg")
+          path.join(process.cwd(), "sample-files/image.jpg"),
         ),
       },
     },
@@ -124,7 +124,7 @@ test("user can use global search to find projects, files and comments", async ({
     try {
       // Look for a search icon or button
       const searchButton = ownerPage.locator(
-        "button[aria-label*='search' i], button:has(svg[data-testid*='search' i]), [aria-label*='search' i]"
+        "button[aria-label*='search' i], button:has(svg[data-testid*='search' i]), [aria-label*='search' i]",
       );
 
       if (await searchButton.isVisible({ timeout: 3000 })) {
@@ -141,7 +141,7 @@ test("user can use global search to find projects, files and comments", async ({
   if (!searchOpened) {
     try {
       const searchInput = ownerPage.locator(
-        "input[placeholder*='search' i], input[aria-label*='search' i]"
+        "input[placeholder*='search' i], input[aria-label*='search' i]",
       );
 
       if (await searchInput.isVisible({ timeout: 3000 })) {
@@ -156,7 +156,7 @@ test("user can use global search to find projects, files and comments", async ({
 
   // Verify a search input is visible
   const searchInput = ownerPage.locator(
-    "input[placeholder*='search' i], input[aria-label*='search' i]"
+    "input[placeholder*='search' i], input[aria-label*='search' i]",
   );
   await expect(searchInput).toBeVisible({ timeout: 10000 });
 
@@ -172,7 +172,7 @@ test("user can use global search to find projects, files and comments", async ({
   // just that the search system responds with some content
   // This makes the test much more reliable than looking for specific content
   const resultsContainer = ownerPage.locator(
-    "ul li, div[role='listbox'], div[role='list'], .search-results, [aria-label*='results' i]"
+    "ul li, div[role='listbox'], div[role='list'], .search-results, [aria-label*='results' i]",
   );
 
   const hasResults = await resultsContainer
@@ -196,7 +196,7 @@ test("user can use global search to find projects, files and comments", async ({
     });
     const commentResult = ownerPage.getByText(
       "This is a searchable comment text",
-      { exact: false }
+      { exact: false },
     );
 
     const projectFound = await projectResult
@@ -210,11 +210,11 @@ test("user can use global search to find projects, files and comments", async ({
       .catch(() => false);
 
     console.log(
-      `Search results: project found: ${projectFound}, file found: ${fileFound}, comment found: ${commentFound}`
+      `Search results: project found: ${projectFound}, file found: ${fileFound}, comment found: ${commentFound}`,
     );
   } catch (e) {
     console.log(
-      "Could not verify specific search results, but search functionality works"
+      "Could not verify specific search results, but search functionality works",
     );
   }
 });

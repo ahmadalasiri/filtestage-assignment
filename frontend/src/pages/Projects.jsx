@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState /* useRef */ } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Avatar,
@@ -21,15 +21,11 @@ import {
   TextField,
   Chip,
   IconButton,
-  FormControl,
-  FormHelperText,
-  InputLabel,
-  Select,
   MenuItem,
   Divider,
   Menu,
-  Autocomplete,
-  Paper,
+  // Autocomplete,
+  // Paper,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
@@ -38,7 +34,7 @@ import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
-import DeleteIcon from "@mui/icons-material/Delete";
+// import DeleteIcon from "@mui/icons-material/Delete";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import {
   useInviteReviewer,
@@ -48,7 +44,6 @@ import {
 } from "../hooks/projects";
 import {
   useCreateFolder,
-  useFolders,
   useFolderHierarchy,
   useUpdateFolder,
   useDeleteFolder,
@@ -67,31 +62,32 @@ const FolderItem = ({ folder, selectedProject, navigate, level = 0 }) => {
   const [createSubfolderDialog, setCreateSubfolderDialog] = useState(false);
   const [editFolderDialog, setEditFolderDialog] = useState(false);
   const [newFolderName, setNewFolderName] = useState(folder.name);
-  
+
   const createProject = useCreateProject();
   const createFolder = useCreateFolder();
   const updateFolder = useUpdateFolder();
   const deleteFolder = useDeleteFolder();
-  
-  const hasChildren = (folder.children && folder.children.length > 0) || 
-                     (folder.projects && folder.projects.length > 0);
+
+  const hasChildren =
+    (folder.children && folder.children.length > 0) ||
+    (folder.projects && folder.projects.length > 0);
   const indent = level * 16;
-  
+
   const handleMenuOpen = (e) => {
     e.stopPropagation();
     setMenuAnchor(e.currentTarget);
   };
-  
+
   const handleMenuClose = () => {
     setMenuAnchor(null);
   };
-  
+
   const handleCreateProjectSubmit = (e) => {
     e.preventDefault();
     createProject.mutate(
-      { 
+      {
         name: e.target.elements.name.value,
-        folderId: folder._id
+        folderId: folder._id,
       },
       {
         onSuccess: () => {
@@ -101,13 +97,13 @@ const FolderItem = ({ folder, selectedProject, navigate, level = 0 }) => {
       },
     );
   };
-  
+
   const handleCreateSubfolderSubmit = (e) => {
     e.preventDefault();
     createFolder.mutate(
-      { 
+      {
         name: e.target.elements.name.value,
-        parentFolderId: folder._id
+        parentFolderId: folder._id,
       },
       {
         onSuccess: () => {
@@ -117,13 +113,13 @@ const FolderItem = ({ folder, selectedProject, navigate, level = 0 }) => {
       },
     );
   };
-  
+
   const handleEditFolderSubmit = (e) => {
     e.preventDefault();
     updateFolder.mutate(
-      { 
+      {
         folderId: folder._id,
-        name: newFolderName
+        name: newFolderName,
       },
       {
         onSuccess: () => {
@@ -132,8 +128,8 @@ const FolderItem = ({ folder, selectedProject, navigate, level = 0 }) => {
       },
     );
   };
-  
-  const handleDeleteFolder = () => {
+
+  const _handleDeleteFolder = () => {
     deleteFolder.mutate(
       { folderId: folder._id },
       {
@@ -143,24 +139,25 @@ const FolderItem = ({ folder, selectedProject, navigate, level = 0 }) => {
       },
     );
   };
-  
+
   return (
     <>
-      <ListItem 
-        disablePadding 
-        sx={{ display: 'block' }}
-      >
+      <ListItem disablePadding sx={{ display: "block" }}>
         <ListItemButton
           onClick={() => setExpanded(!expanded)}
           sx={{ pl: `${indent}px` }}
         >
           <ListItemIcon>
-            {expanded ? <FolderOpenIcon color="primary" /> : <FolderIcon color="primary" />}
+            {expanded ? (
+              <FolderOpenIcon color="primary" />
+            ) : (
+              <FolderIcon color="primary" />
+            )}
           </ListItemIcon>
           <ListItemText primary={folder.name} />
           {hasChildren && (
-            <IconButton 
-              edge="end" 
+            <IconButton
+              edge="end"
               onClick={(e) => {
                 e.stopPropagation();
                 setExpanded(!expanded);
@@ -170,54 +167,59 @@ const FolderItem = ({ folder, selectedProject, navigate, level = 0 }) => {
               {expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
             </IconButton>
           )}
-          <IconButton
-            edge="end"
-            onClick={handleMenuOpen}
-            size="small"
-          >
+          <IconButton edge="end" onClick={handleMenuOpen} size="small">
             <MoreVertIcon />
           </IconButton>
         </ListItemButton>
       </ListItem>
-      
+
       {/* Folder context menu */}
       <Menu
         anchorEl={menuAnchor}
         open={Boolean(menuAnchor)}
         onClose={handleMenuClose}
       >
-        <MenuItem onClick={() => {
-          handleMenuClose();
-          setCreateProjectDialog(true);
-        }}>
+        <MenuItem
+          onClick={() => {
+            handleMenuClose();
+            setCreateProjectDialog(true);
+          }}
+        >
           <ListItemIcon>
             <AddIcon fontSize="small" />
           </ListItemIcon>
           Create project
         </MenuItem>
-        <MenuItem onClick={() => {
-          handleMenuClose();
-          setCreateSubfolderDialog(true);
-        }}>
+        <MenuItem
+          onClick={() => {
+            handleMenuClose();
+            setCreateSubfolderDialog(true);
+          }}
+        >
           <ListItemIcon>
             <CreateNewFolderIcon fontSize="small" />
           </ListItemIcon>
           Create subfolder
         </MenuItem>
         <Divider />
-        <MenuItem onClick={() => {
-          handleMenuClose();
-          setEditFolderDialog(true);
-        }}>
+        <MenuItem
+          onClick={() => {
+            handleMenuClose();
+            setEditFolderDialog(true);
+          }}
+        >
           <ListItemIcon>
             <EditIcon fontSize="small" />
           </ListItemIcon>
           Edit folder name
         </MenuItem>
       </Menu>
-      
+
       {/* Create Project Dialog */}
-      <Dialog open={createProjectDialog} onClose={() => setCreateProjectDialog(false)}>
+      <Dialog
+        open={createProjectDialog}
+        onClose={() => setCreateProjectDialog(false)}
+      >
         <Box component="form" onSubmit={handleCreateProjectSubmit}>
           <DialogTitle>Create New Project</DialogTitle>
           <DialogContent>
@@ -234,12 +236,18 @@ const FolderItem = ({ folder, selectedProject, navigate, level = 0 }) => {
               variant="standard"
               required
             />
-            <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ mt: 1, display: "block" }}
+            >
               Project will be created in folder: {folder.name}
             </Typography>
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setCreateProjectDialog(false)}>Cancel</Button>
+            <Button onClick={() => setCreateProjectDialog(false)}>
+              Cancel
+            </Button>
             <Button
               variant="contained"
               type="submit"
@@ -250,9 +258,12 @@ const FolderItem = ({ folder, selectedProject, navigate, level = 0 }) => {
           </DialogActions>
         </Box>
       </Dialog>
-      
+
       {/* Create Subfolder Dialog */}
-      <Dialog open={createSubfolderDialog} onClose={() => setCreateSubfolderDialog(false)}>
+      <Dialog
+        open={createSubfolderDialog}
+        onClose={() => setCreateSubfolderDialog(false)}
+      >
         <Box component="form" onSubmit={handleCreateSubfolderSubmit}>
           <DialogTitle>Create New Subfolder</DialogTitle>
           <DialogContent>
@@ -269,12 +280,18 @@ const FolderItem = ({ folder, selectedProject, navigate, level = 0 }) => {
               variant="standard"
               required
             />
-            <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ mt: 1, display: "block" }}
+            >
               Subfolder will be created in: {folder.name}
             </Typography>
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setCreateSubfolderDialog(false)}>Cancel</Button>
+            <Button onClick={() => setCreateSubfolderDialog(false)}>
+              Cancel
+            </Button>
             <Button
               variant="contained"
               type="submit"
@@ -285,9 +302,12 @@ const FolderItem = ({ folder, selectedProject, navigate, level = 0 }) => {
           </DialogActions>
         </Box>
       </Dialog>
-      
+
       {/* Edit Folder Dialog */}
-      <Dialog open={editFolderDialog} onClose={() => setEditFolderDialog(false)}>
+      <Dialog
+        open={editFolderDialog}
+        onClose={() => setEditFolderDialog(false)}
+      >
         <Box component="form" onSubmit={handleEditFolderSubmit}>
           <DialogTitle>Edit Folder Name</DialogTitle>
           <DialogContent>
@@ -315,33 +335,32 @@ const FolderItem = ({ folder, selectedProject, navigate, level = 0 }) => {
           </DialogActions>
         </Box>
       </Dialog>
-      
+
       {/* Render children if expanded */}
       {expanded && hasChildren && (
         <List disablePadding>
-          {folder.children && folder.children.map(childFolder => (
-            <FolderItem 
-              key={childFolder._id}
-              folder={childFolder}
-              selectedProject={selectedProject}
-              navigate={navigate}
-              level={level + 1}
-            />
-          ))}
-          {folder.projects && folder.projects.map(project => (
-            <ListItem 
-              key={project._id}
-              disablePadding
-            >
-              <ListItemButton
-                selected={project._id === selectedProject?._id}
-                onClick={() => navigate(`/projects/${project._id}`)}
-                sx={{ pl: `${indent + 16}px` }}
-              >
-                <ListItemText primary={project.name} />
-              </ListItemButton>
-            </ListItem>
-          ))}
+          {folder.children &&
+            folder.children.map((childFolder) => (
+              <FolderItem
+                key={childFolder._id}
+                folder={childFolder}
+                selectedProject={selectedProject}
+                navigate={navigate}
+                level={level + 1}
+              />
+            ))}
+          {folder.projects &&
+            folder.projects.map((project) => (
+              <ListItem key={project._id} disablePadding>
+                <ListItemButton
+                  selected={project._id === selectedProject?._id}
+                  onClick={() => navigate(`/projects/${project._id}`)}
+                  sx={{ pl: `${indent + 16}px` }}
+                >
+                  <ListItemText primary={project.name} />
+                </ListItemButton>
+              </ListItem>
+            ))}
         </List>
       )}
     </>
@@ -357,20 +376,21 @@ const Sidebar = () => {
   const {
     data: { userId },
   } = useSession();
-  
+
   const [rootFolderDialogOpen, setRootFolderDialogOpen] = useState(false);
-  
+
   // Get projects shared with the user (not in folders)
-  const sharedWithMe = projects.filter(project => 
-    project.authorId !== userId && project.reviewers.includes(userId)
+  const sharedWithMe = projects.filter(
+    (project) =>
+      project.authorId !== userId && project.reviewers.includes(userId),
   );
 
   const handleCreateRootFolder = (e) => {
     e.preventDefault();
     createFolder.mutate(
-      { 
+      {
         name: e.target.elements.name.value,
-        parentFolderId: null 
+        parentFolderId: null,
       },
       {
         onSuccess: () => {
@@ -392,15 +412,16 @@ const Sidebar = () => {
           New Folder
         </Button>
       </Box>
-      
+
       {/* Create Root Folder Dialog */}
-      <Dialog open={rootFolderDialogOpen} onClose={() => setRootFolderDialogOpen(false)}>
+      <Dialog
+        open={rootFolderDialogOpen}
+        onClose={() => setRootFolderDialogOpen(false)}
+      >
         <Box component="form" onSubmit={handleCreateRootFolder}>
           <DialogTitle>Create New Folder</DialogTitle>
           <DialogContent>
-            <DialogContentText>
-              Please enter the folder name:
-            </DialogContentText>
+            <DialogContentText>Please enter the folder name:</DialogContentText>
             <TextField
               autoFocus
               name="name"
@@ -428,7 +449,7 @@ const Sidebar = () => {
       </Dialog>
       <List>
         {folders.map((folder) => (
-          <FolderItem 
+          <FolderItem
             key={folder._id}
             folder={folder}
             selectedProject={selectedProject}
@@ -469,18 +490,18 @@ const UploadFileButton = ({ projectId }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
+
     // Combine date and time for the deadline
     let combinedDeadline = null;
     if (deadlineDate) {
       combinedDeadline = new Date(`${deadlineDate}T${deadlineTime}:00`);
     }
-    
+
     uploadFile.mutate(
-      { 
-        projectId, 
-        file, 
-        deadline: combinedDeadline
+      {
+        projectId,
+        file,
+        deadline: combinedDeadline,
       },
       {
         onSuccess: () => {
@@ -495,7 +516,7 @@ const UploadFileButton = ({ projectId }) => {
 
   // Calculate minimum date (today) for the deadline picker
   const today = new Date();
-  const minDate = today.toISOString().split('T')[0];
+  const minDate = today.toISOString().split("T")[0];
 
   return (
     <Box>
@@ -525,7 +546,7 @@ const UploadFileButton = ({ projectId }) => {
                 Selected file: {file.name}
               </Typography>
             )}
-            
+
             <TextField
               label="Review Deadline Date (Optional)"
               type="date"
@@ -537,7 +558,7 @@ const UploadFileButton = ({ projectId }) => {
               helperText="Set a date for the review deadline"
               sx={{ mb: 2 }}
             />
-            
+
             {deadlineDate && (
               <TextField
                 label="Review Deadline Time"
@@ -641,21 +662,21 @@ const InviteReviewerButton = ({ projectId }) => {
 // Helper function to format deadline display
 const formatDeadline = (deadline) => {
   if (!deadline) return null;
-  
+
   const deadlineDate = new Date(deadline);
   const now = new Date();
   const isPast = deadlineDate < now;
-  
+
   // Format with both date and time
-  const dateOptions = { year: 'numeric', month: 'short', day: 'numeric' };
-  const timeOptions = { hour: '2-digit', minute: '2-digit' };
-  
+  const dateOptions = { year: "numeric", month: "short", day: "numeric" };
+  const timeOptions = { hour: "2-digit", minute: "2-digit" };
+
   // Format the date and time
   const formattedDateTime = `${deadlineDate.toLocaleDateString(undefined, dateOptions)} at ${deadlineDate.toLocaleTimeString(undefined, timeOptions)}`;
-  
+
   return {
     text: formattedDateTime,
-    isPast
+    isPast,
   };
 };
 
@@ -666,17 +687,24 @@ const FileGroup = ({ files, userId, navigate }) => {
   const [expanded, setExpanded] = useState(false);
   const mainFile = files[0]; // The latest version is first
   const hasVersions = files.length > 1;
-  
+
   const deadlineInfo = formatDeadline(mainFile.deadline);
   const isOwner = mainFile.authorId === userId;
-  
+
   const toggleExpanded = (e) => {
     e.stopPropagation();
     setExpanded(!expanded);
   };
-  
+
   return (
-    <Box sx={{ mb: 1, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
+    <Box
+      sx={{
+        mb: 1,
+        border: "1px solid",
+        borderColor: "divider",
+        borderRadius: 1,
+      }}
+    >
       <ListItem
         key={mainFile._id}
         secondaryAction={<CopyFileLinkButton fileId={mainFile._id} />}
@@ -699,29 +727,33 @@ const FileGroup = ({ files, userId, navigate }) => {
                   textOverflow: "ellipsis",
                   whiteSpace: "nowrap",
                   maxWidth: "250px",
-                  mr: 1
+                  mr: 1,
                 }}
               >
                 {mainFile.name}
               </Typography>
-              
-              <Chip 
-                label={`v${mainFile.version}`} 
-                color="primary" 
+
+              <Chip
+                label={`v${mainFile.version}`}
+                color="primary"
                 size="small"
-                sx={{ height: 20, fontSize: '0.7rem' }}
+                sx={{ height: 20, fontSize: "0.7rem" }}
               />
-              
+
               {hasVersions && (
-                <IconButton size="small" onClick={toggleExpanded} sx={{ ml: 1 }}>
+                <IconButton
+                  size="small"
+                  onClick={toggleExpanded}
+                  sx={{ ml: 1 }}
+                >
                   {expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
                 </IconButton>
               )}
             </Box>
-            
+
             {deadlineInfo && (
-              <Typography 
-                variant="caption" 
+              <Typography
+                variant="caption"
                 color={deadlineInfo.isPast ? "error" : "text.secondary"}
                 sx={{ display: "flex", alignItems: "center", mt: 0.5 }}
               >
@@ -732,25 +764,33 @@ const FileGroup = ({ files, userId, navigate }) => {
           </Box>
         </ListItemButton>
       </ListItem>
-      
+
       {/* Versions dropdown */}
       {expanded && hasVersions && (
-        <Box sx={{ pl: 7, pr: 2, pb: 1, borderTop: '1px dashed', borderColor: 'divider' }}>
+        <Box
+          sx={{
+            pl: 7,
+            pr: 2,
+            pb: 1,
+            borderTop: "1px dashed",
+            borderColor: "divider",
+          }}
+        >
           {files.slice(1).map((version) => (
-            <Box 
-              key={version._id} 
-              sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
+            <Box
+              key={version._id}
+              sx={{
+                display: "flex",
+                alignItems: "center",
                 py: 1,
-                borderBottom: '1px dotted',
-                borderColor: 'divider',
-                '&:last-child': { borderBottom: 0 }
+                borderBottom: "1px dotted",
+                borderColor: "divider",
+                "&:last-child": { borderBottom: 0 },
               }}
             >
-              <Typography 
-                variant="body2" 
-                sx={{ 
+              <Typography
+                variant="body2"
+                sx={{
                   flex: 1,
                   overflow: "hidden",
                   textOverflow: "ellipsis",
@@ -759,15 +799,15 @@ const FileGroup = ({ files, userId, navigate }) => {
               >
                 {version.name}
               </Typography>
-              <Chip 
-                label={`v${version.version}`} 
-                color="default" 
+              <Chip
+                label={`v${version.version}`}
+                color="default"
                 size="small"
-                sx={{ height: 18, fontSize: '0.65rem', mr: 1 }}
+                sx={{ height: 18, fontSize: "0.65rem", mr: 1 }}
               />
-              <Button 
-                size="small" 
-                variant="text" 
+              <Button
+                size="small"
+                variant="text"
                 onClick={() => navigate(`/files/${version._id}`)}
               >
                 View
@@ -790,9 +830,9 @@ const Project = ({ project }) => {
   // Group files by originalFileId or their own id if they are originals
   const groupFiles = () => {
     const fileGroups = {};
-    
+
     // First pass: create groups
-    files.forEach(file => {
+    files.forEach((file) => {
       if (file.originalFileId) {
         // This is a version of another file
         if (!fileGroups[file.originalFileId]) {
@@ -807,12 +847,12 @@ const Project = ({ project }) => {
         fileGroups[file._id].push(file);
       }
     });
-    
+
     // Sort each group by version
-    Object.keys(fileGroups).forEach(groupId => {
+    Object.keys(fileGroups).forEach((groupId) => {
       fileGroups[groupId].sort((a, b) => b.version - a.version); // Descending order
     });
-    
+
     return Object.values(fileGroups);
   };
 
@@ -842,11 +882,11 @@ const Project = ({ project }) => {
       {files.length === 0 && <Typography variant="h6">No files yet</Typography>}
       <List sx={{ width: "600px" }}>
         {fileGroups.map((fileGroup) => (
-          <FileGroup 
-            key={fileGroup[0]._id} 
-            files={fileGroup} 
-            userId={userId} 
-            navigate={navigate} 
+          <FileGroup
+            key={fileGroup[0]._id}
+            files={fileGroup}
+            userId={userId}
+            navigate={navigate}
           />
         ))}
       </List>

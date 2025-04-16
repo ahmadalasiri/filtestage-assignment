@@ -56,7 +56,7 @@ export const handleCommentMentions = async (db, comment) => {
       comment,
       file,
       project,
-      commentAuthor
+      commentAuthor,
     );
 
     // Store mention results in the comment for reference
@@ -65,7 +65,7 @@ export const handleCommentMentions = async (db, comment) => {
         .collection("comments")
         .updateOne(
           { _id: comment._id },
-          { $set: { mentionNotifications: mentionResults } }
+          { $set: { mentionNotifications: mentionResults } },
         );
     }
 
@@ -115,7 +115,7 @@ export const processMentions = async (db, comment, file, project, author) => {
 
     if (!hasSmtpConfig) {
       console.warn(
-        "SMTP Configuration missing. Email notifications will not be sent."
+        "SMTP Configuration missing. Email notifications will not be sent.",
       );
 
       // Return mock results for logging purposes
@@ -155,7 +155,7 @@ export const processMentions = async (db, comment, file, project, author) => {
       return sendEmail(
         user.email,
         `You were mentioned in a comment on ${project.name}`,
-        emailTemplate
+        emailTemplate,
       )
         .then(() => {
           return { user: user._id, sent: true, email: user.email };
@@ -163,7 +163,7 @@ export const processMentions = async (db, comment, file, project, author) => {
         .catch((error) => {
           console.error(
             `Failed to send email to ${user.email}:`,
-            error.message
+            error.message,
           );
           return {
             user: user._id,

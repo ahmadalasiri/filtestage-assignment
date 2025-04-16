@@ -1,5 +1,5 @@
-import { MongoClient } from 'mongodb';
-import logger from '../utils/logger.js';
+import { MongoClient } from "mongodb";
+import logger from "../utils/logger.js";
 
 export class Database {
   constructor() {
@@ -13,7 +13,7 @@ export class Database {
 
       await this.client.connect();
 
-      this.db = this.client.db('filestage');
+      this.db = this.client.db("filestage");
 
       const host = this.client.options.hosts[0];
       logger.info(`MongoDB Connected: ${host}`);
@@ -22,7 +22,7 @@ export class Database {
     } catch (error) {
       logger.error(`Failed to connect to database: ${error.message}`, {
         error: error.message,
-        stack: error.stack
+        stack: error.stack,
       });
       throw error;
     }
@@ -31,7 +31,7 @@ export class Database {
   async close() {
     if (this.client) {
       await this.client.close();
-      logger.info('Database connection closed');
+      logger.info("Database connection closed");
     }
   }
 }

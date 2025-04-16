@@ -11,8 +11,10 @@ import { backendFetch } from "../backend";
 export function useSearch({ query, filter = "all" }) {
   return useQuery({
     queryKey: ["search", query, filter],
-    queryFn: () => 
-      backendFetch(`/search?query=${encodeURIComponent(query)}&filter=${filter}`),
+    queryFn: () =>
+      backendFetch(
+        `/search?query=${encodeURIComponent(query)}&filter=${filter}`,
+      ),
     enabled: !!query && query.length >= 2, // Only search when query is at least 2 characters
     staleTime: 1000 * 60 * 5, // Cache results for 5 minutes
   });

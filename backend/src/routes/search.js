@@ -53,7 +53,7 @@ export default function SearchRoutes({ db, session }) {
             path,
             navigationPath: `/projects/${project._id}`,
           };
-        })
+        }),
       );
 
       results.projects = projectsWithPath;
@@ -92,7 +92,7 @@ export default function SearchRoutes({ db, session }) {
             path,
             navigationPath: `/files/${file._id}`,
           };
-        })
+        }),
       );
 
       results.files = filesWithPath;
@@ -142,7 +142,7 @@ export default function SearchRoutes({ db, session }) {
             path,
             navigationPath: `/files/${comment.fileId}`,
           };
-        })
+        }),
       );
 
       results.comments = commentsWithContext;

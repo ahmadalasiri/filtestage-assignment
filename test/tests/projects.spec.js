@@ -83,11 +83,11 @@ test("upload file to project", async () => {
           name: "image.jpg",
           mimeType: "image/jpeg",
           buffer: fs.readFileSync(
-            path.join(process.cwd(), "sample-files/image.jpg")
+            path.join(process.cwd(), "sample-files/image.jpg"),
           ),
         },
       },
-    }
+    },
   );
 
   // Navigate to project page to verify the file appears
@@ -121,11 +121,11 @@ test("copy file link", async () => {
             name: "image.jpg",
             mimeType: "image/jpeg",
             buffer: fs.readFileSync(
-              path.join(process.cwd(), "sample-files/image.jpg")
+              path.join(process.cwd(), "sample-files/image.jpg"),
             ),
           },
         },
-      }
+      },
     );
   }
 
@@ -149,7 +149,7 @@ test("invite reviewer to project", async () => {
     // Try to find a reviewer list or some indicator
     const reviewerElements = await page
       .locator(
-        '.reviewer-item, [data-testid*="reviewer"], tr:has-text("reviewer")'
+        '.reviewer-item, [data-testid*="reviewer"], tr:has-text("reviewer")',
       )
       .count();
     initialReviewerCount = reviewerElements;
@@ -166,11 +166,11 @@ test("invite reviewer to project", async () => {
     {
       headers: { "Content-Type": "application/json" },
       data: { email: reviewerEmail },
-    }
+    },
   ).catch((err) => {
     console.log(
       "Error adding reviewer via API, but we'll continue:",
-      err.message
+      err.message,
     );
     return null;
   });
@@ -200,7 +200,7 @@ test("invite reviewer to project", async () => {
     if (!reviewerVisible) {
       const currentReviewerCount = await page
         .locator(
-          '.reviewer-item, [data-testid*="reviewer"], tr:has-text("reviewer")'
+          '.reviewer-item, [data-testid*="reviewer"], tr:has-text("reviewer")',
         )
         .count();
       console.log(`Current reviewer count: ${currentReviewerCount}`);
@@ -214,7 +214,7 @@ test("invite reviewer to project", async () => {
   // let's consider the test passed since the API part worked
   if (addReviewerResponse && !reviewerVisible) {
     console.log(
-      "Reviewer added via API successfully but not visible in UI - considering test passed"
+      "Reviewer added via API successfully but not visible in UI - considering test passed",
     );
     expect(true).toBeTruthy();
   } else {
@@ -234,7 +234,7 @@ test("open project as reviewer", async () => {
     {
       headers: { "Content-Type": "application/json" },
       data: { email: accounts.reviewer.email },
-    }
+    },
   ).catch((err) => {
     console.log("Could not add reviewer via API, continuing with test anyway");
   });

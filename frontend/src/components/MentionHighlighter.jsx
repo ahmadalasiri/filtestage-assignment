@@ -1,14 +1,14 @@
-import React from 'react';
-import { Typography, Box } from '@mui/material';
-import { styled } from '@mui/material/styles';
+import React from "react";
+import { Box } from "@mui/material";
+import { styled } from "@mui/material/styles";
 
 // Style the mention spans to match the input styling
-const StyledMentionSpan = styled('span')(({ theme }) => ({
+const StyledMentionSpan = styled("span")(({ theme }) => ({
   color: theme.palette.primary.main,
-  fontWeight: 'bold',
-  backgroundColor: theme.palette.primary.light + '33', // Add light background with transparency
-  borderRadius: '3px',
-  padding: '0 2px',
+  fontWeight: "bold",
+  backgroundColor: theme.palette.primary.light + "33", // Add light background with transparency
+  borderRadius: "3px",
+  padding: "0 2px",
 }));
 
 /**
@@ -35,9 +35,7 @@ const MentionHighlighter = ({ text }) => {
 
     // Add the mention with highlighting
     parts.push(
-      <StyledMentionSpan key={match.index}>
-        {match[0]}
-      </StyledMentionSpan>
+      <StyledMentionSpan key={match.index}>{match[0]}</StyledMentionSpan>,
     );
 
     lastIndex = match.index + match[0].length;
@@ -50,15 +48,11 @@ const MentionHighlighter = ({ text }) => {
 
   // If no mentions were found, return the original text
   if (parts.length === 0) {
-    return <Box sx={{ typography: 'body1' }}>{text}</Box>;
+    return <Box sx={{ typography: "body1" }}>{text}</Box>;
   }
 
   // Render the text with highlighted mentions
-  return (
-    <Box sx={{ typography: 'body1' }}>
-      {parts}
-    </Box>
-  );
+  return <Box sx={{ typography: "body1" }}>{parts}</Box>;
 };
 
 export default MentionHighlighter;

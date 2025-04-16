@@ -51,7 +51,7 @@ const MentionInput = ({
 
       // Add the mention with highlighting
       parts.push(
-        <StyledMentionSpan key={match.index}>{match[0]}</StyledMentionSpan>
+        <StyledMentionSpan key={match.index}>{match[0]}</StyledMentionSpan>,
       );
 
       lastIndex = match.index + match[0].length;
@@ -114,7 +114,6 @@ const MentionInput = ({
           pointerEvents: "none",
           wordBreak: "break-word",
           fontFamily: "inherit",
-          fontSize: "inherit",
           fontWeight: "inherit",
           lineHeight: "inherit",
         }}

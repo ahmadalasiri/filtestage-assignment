@@ -38,7 +38,7 @@ test.beforeAll(async ({ browser }) => {
         name: "comment-reply-test.jpg",
         mimeType: "image/jpeg",
         buffer: fs.readFileSync(
-          path.join(process.cwd(), "sample-files/image.jpg")
+          path.join(process.cwd(), "sample-files/image.jpg"),
         ),
       },
     },
@@ -78,7 +78,7 @@ test("user can reply to comments", async ({ page }) => {
     "comment-reply-test.jpg",
     {
       timeout: 15000,
-    }
+    },
   );
 
   // Wait for the image to load
@@ -134,7 +134,7 @@ test("user can reply to comments", async ({ page }) => {
   await ownerPage.waitForTimeout(1000);
   const replyText = ownerPage.getByText(
     "This is a reply to the parent comment",
-    { exact: false }
+    { exact: false },
   );
   await expect(replyText).toBeVisible({ timeout: 10000 });
 });

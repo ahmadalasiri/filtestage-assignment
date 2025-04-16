@@ -25,7 +25,9 @@ export function useUpdateDeadline() {
     mutationFn: ({ fileId, deadline }) => {
       return backendFetch(`/files/${fileId}/deadline`, {
         method: "PATCH",
-        body: JSON.stringify({ deadline: deadline ? deadline.toISOString() : null }),
+        body: JSON.stringify({
+          deadline: deadline ? deadline.toISOString() : null,
+        }),
         headers: { "Content-Type": "application/json" },
       });
     },

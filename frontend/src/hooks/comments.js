@@ -13,7 +13,7 @@ export function useComments({ fileId, limit = 10 }) {
     queryKey: ["comments", fileId],
     queryFn: ({ pageParam = 1 }) =>
       backendFetch(
-        `/comments?fileId=${fileId}&page=${pageParam}&limit=${limit}`
+        `/comments?fileId=${fileId}&page=${pageParam}&limit=${limit}`,
       ),
     initialData: {
       pages: [

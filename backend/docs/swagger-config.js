@@ -12,7 +12,7 @@ export function setupSwagger(app) {
   try {
     // Load the Swagger document
     const swaggerDocument = yaml.load(
-      fs.readFileSync(path.join(__dirname, "swagger.yaml"), "utf8")
+      fs.readFileSync(path.join(__dirname, "swagger.yaml"), "utf8"),
     );
 
     // Serve the Swagger JSON/YAML
@@ -27,7 +27,7 @@ export function setupSwagger(app) {
       swaggerUi.setup(swaggerDocument, {
         explorer: true,
         customCss: ".swagger-ui .topbar { display: none }",
-      })
+      }),
     );
 
     console.log("Swagger documentation set up successfully");

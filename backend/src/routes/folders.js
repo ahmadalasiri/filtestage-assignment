@@ -57,7 +57,7 @@ export default function FolderRoutes({ db, session }) {
     if (!folder.authorId.equals(userId)) {
       throw new ApiError(
         403,
-        "Forbidden: You don't have permission to modify this folder"
+        "Forbidden: You don't have permission to modify this folder",
       );
     }
 
@@ -91,7 +91,7 @@ export default function FolderRoutes({ db, session }) {
     if (!folder.authorId.equals(userId)) {
       throw new ApiError(
         403,
-        "Forbidden: You don't have permission to delete this folder"
+        "Forbidden: You don't have permission to delete this folder",
       );
     }
 

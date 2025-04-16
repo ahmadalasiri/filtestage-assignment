@@ -62,7 +62,7 @@ export default function CommentRoutes({ db, session }) {
 
     // Sort the outer array by the creation date of the first comment in each group (parent comment)
     nestedComments.sort(
-      (a, b) => new Date(a[0].createdAt) - new Date(b[0].createdAt)
+      (a, b) => new Date(a[0].createdAt) - new Date(b[0].createdAt),
     );
 
     // Apply pagination

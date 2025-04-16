@@ -80,24 +80,24 @@ const TopBar = ({ title, back = false }) => {
             </Typography>
           )}
 
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <Box sx={{ display: "flex", alignItems: "center" }}>
             <Tooltip title="Search">
-              <IconButton 
-                aria-label="Search" 
+              <IconButton
+                aria-label="Search"
                 onClick={() => setSearchOpen(true)}
-                sx={{ 
+                sx={{
                   mr: 1,
-                  color: '#000000',
-                  bgcolor: '#f5f5f5',
-                  '&:hover': {
-                    bgcolor: '#e0e0e0'
-                  }
+                  color: "#000000",
+                  bgcolor: "#f5f5f5",
+                  "&:hover": {
+                    bgcolor: "#e0e0e0",
+                  },
                 }}
               >
                 <SearchIcon />
               </IconButton>
             </Tooltip>
-            
+
             <IconButton aria-label="Account Menu" onClick={handleMenuOpen}>
               <UserAvatar userId={userId} />
             </IconButton>
@@ -116,12 +116,9 @@ const TopBar = ({ title, back = false }) => {
           </MenuItem>
           <MenuItem onClick={() => logout.mutate()}>Logout</MenuItem>
         </Menu>
-        
+
         {/* Global Search Dialog */}
-        <GlobalSearch 
-          open={searchOpen} 
-          onClose={() => setSearchOpen(false)} 
-        />
+        <GlobalSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
       </Toolbar>
     </AppBar>
   );

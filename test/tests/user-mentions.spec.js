@@ -38,7 +38,7 @@ test.beforeAll(async ({ browser }) => {
     {
       headers: { "Content-Type": "application/json" },
       data: { email: accounts.reviewer.email },
-    }
+    },
   );
 
   // Upload a test file
@@ -49,7 +49,7 @@ test.beforeAll(async ({ browser }) => {
         name: "mentions-test.jpg",
         mimeType: "image/jpeg",
         buffer: fs.readFileSync(
-          path.join(process.cwd(), "sample-files/image.jpg")
+          path.join(process.cwd(), "sample-files/image.jpg"),
         ),
       },
     },
@@ -89,7 +89,7 @@ test("user can mention other users in comments", async ({ page, browser }) => {
     "mentions-test.jpg",
     {
       timeout: 15000,
-    }
+    },
   );
 
   // Click on the image to add a comment

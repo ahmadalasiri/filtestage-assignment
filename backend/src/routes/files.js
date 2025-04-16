@@ -17,6 +17,8 @@ export default function FileRoutes({ db, session }) {
   router.post("/", upload.single("file"), async (req, res) => {
     const { userId } = await session.get(req);
     if (!userId) {
+      // User not authenticated
+      throw new ApiError(401, "Not authenticated");
     }
 
     if (!["image/jpeg", "image/png"].includes(req.file.mimetype)) {
@@ -37,8 +39,9 @@ export default function FileRoutes({ db, session }) {
     if (req.body.deadline) {
       deadline = new Date(req.body.deadline);
       if (isNaN(deadline) || deadline <= new Date()) {
-        throw new ValidationError(
-          "Deadline must be a valid future date and time"
+        throw new ApiError(
+          400,
+          "Deadline must be a valid future date and time",
         );
       }
     }
@@ -83,7 +86,7 @@ export default function FileRoutes({ db, session }) {
       await db
         .collection("files")
         .find({ projectId: project._id }, { sort: { createdAt: 1 } })
-        .toArray()
+        .toArray(),
     );
   });
 
@@ -177,6 +180,7 @@ export default function FileRoutes({ db, session }) {
   router.post("/:id/versions", upload.single("file"), async (req, res) => {
     const { userId } = await session.get(req);
     if (!userId) {
+      // User not authenticated
       throw new ApiError(401, "Not authenticated");
     }
 
@@ -204,6 +208,8 @@ export default function FileRoutes({ db, session }) {
       !project.authorId.equals(userId) &&
       !project.reviewers.some((reviewer) => reviewer.equals(userId))
     ) {
+      // User does not have permissions for this project
+      throw new ApiError(403, "Forbidden");
     }
 
     const latestVersion = await db

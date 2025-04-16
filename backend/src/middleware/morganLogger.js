@@ -31,7 +31,7 @@ const morganMiddleware = morgan(
     skip: (req, res) => {
       return req.url === "/health" && res.statusCode === 200;
     },
-  }
+  },
 );
 
 export default morganMiddleware;

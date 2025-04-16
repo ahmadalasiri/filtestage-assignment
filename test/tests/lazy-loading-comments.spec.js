@@ -39,7 +39,7 @@ test.beforeAll(async ({ browser }) => {
         name: "lazy-loading-test.jpg",
         mimeType: "image/jpeg",
         buffer: fs.readFileSync(
-          path.join(process.cwd(), "sample-files/image.jpg")
+          path.join(process.cwd(), "sample-files/image.jpg"),
         ),
       },
     },
@@ -57,7 +57,7 @@ test.beforeAll(async ({ browser }) => {
           x: Math.random() * 100, // Random position
           y: Math.random() * 100, // Random position
         },
-      })
+      }),
     );
   }
 
@@ -97,7 +97,7 @@ test("comments should load lazily when scrolling", async ({ page }) => {
     "lazy-loading-test.jpg",
     {
       timeout: 15000,
-    }
+    },
   );
 
   // Wait for the initial batch of comments to load
@@ -114,7 +114,7 @@ test("comments should load lazily when scrolling", async ({ page }) => {
   // but not testing lazy loading. Check and log this case.
   if (initialCommentCount >= COMMENTS_COUNT) {
     console.log(
-      `All ${COMMENTS_COUNT} comments loaded at once, lazy loading not triggered`
+      `All ${COMMENTS_COUNT} comments loaded at once, lazy loading not triggered`,
     );
     return;
   }
@@ -138,7 +138,7 @@ test("comments should load lazily when scrolling", async ({ page }) => {
 
   console.log(
     "Potential scrollable containers:",
-    JSON.stringify(scrollableContainers)
+    JSON.stringify(scrollableContainers),
   );
 
   // Use JavaScript to scroll potential comment containers
@@ -151,7 +151,7 @@ test("comments should load lazily when scrolling", async ({ page }) => {
           (style.overflowY === "auto" || style.overflowY === "scroll") &&
           div.scrollHeight > div.clientHeight
         );
-      }
+      },
     );
 
     // Sort by size - the comments container is likely one of the taller containers
@@ -174,7 +174,7 @@ test("comments should load lazily when scrolling", async ({ page }) => {
   // Log whether more comments loaded
   if (afterScrollCommentCount > initialCommentCount) {
     console.log(
-      `More comments loaded: ${afterScrollCommentCount} > ${initialCommentCount}`
+      `More comments loaded: ${afterScrollCommentCount} > ${initialCommentCount}`,
     );
     // Test passed - more comments were loaded after scrolling
   } else {
@@ -182,7 +182,7 @@ test("comments should load lazily when scrolling", async ({ page }) => {
     // number of comments already, suggesting that pagination is working but we may have
     // reached the end of the comments
     console.log(
-      `No more comments loaded: ${afterScrollCommentCount} comments visible`
+      `No more comments loaded: ${afterScrollCommentCount} comments visible`,
     );
     expect(afterScrollCommentCount).toBeGreaterThan(5); // At least have a reasonable number of comments
   }

@@ -38,7 +38,7 @@ test.beforeAll(async ({ browser }) => {
         name: "annotation-test.jpg",
         mimeType: "image/jpeg",
         buffer: fs.readFileSync(
-          path.join(process.cwd(), "sample-files/image.jpg")
+          path.join(process.cwd(), "sample-files/image.jpg"),
         ),
       },
     },
@@ -81,7 +81,7 @@ test("annotation feature exists for image comments", async ({ page }) => {
     "annotation-test.jpg",
     {
       timeout: 15000,
-    }
+    },
   );
 
   console.log("Page loaded successfully");
@@ -99,7 +99,7 @@ test("annotation feature exists for image comments", async ({ page }) => {
         x: 50, // x coordinate on the image
         y: 50, // y coordinate on the image
       },
-    }
+    },
   ).catch((e) => {
     console.log("Error creating comment via API:", e.message);
     return null;
@@ -109,7 +109,7 @@ test("annotation feature exists for image comments", async ({ page }) => {
     console.log("Successfully created comment via API");
   } else {
     console.log(
-      "Could not create comment via API, continuing with UI checks only"
+      "Could not create comment via API, continuing with UI checks only",
     );
   }
 
@@ -146,7 +146,7 @@ test("annotation feature exists for image comments", async ({ page }) => {
 
   if (!annotationFeatureFound) {
     console.log(
-      "No annotation UI elements found directly, checking for related attributes"
+      "No annotation UI elements found directly, checking for related attributes",
     );
 
     // Look for elements with annotation-related attributes
@@ -159,7 +159,7 @@ test("annotation feature exists for image comments", async ({ page }) => {
             attr.includes("annotation") ||
             attr.includes("draw") ||
             attr.includes("marker") ||
-            attr.includes("canvas")
+            attr.includes("canvas"),
         );
       });
     });
@@ -173,7 +173,7 @@ test("annotation feature exists for image comments", async ({ page }) => {
   // Check if the page has a file viewer that typically would support annotations
   const fileViewer = ownerPage
     .locator(
-      '[data-testid="file-viewer"], .image-viewer, .file-viewer, .file-container'
+      '[data-testid="file-viewer"], .image-viewer, .file-viewer, .file-container',
     )
     .first();
   const fileViewerVisible = await fileViewer.isVisible().catch(() => false);
@@ -182,7 +182,7 @@ test("annotation feature exists for image comments", async ({ page }) => {
 
   // Check for any buttons that might let users add comments (which could then include annotations)
   const commentButtons = ownerPage.locator(
-    'button:has-text("Comment"), button[aria-label*="comment"], [data-testid*="comment-button"]'
+    'button:has-text("Comment"), button[aria-label*="comment"], [data-testid*="comment-button"]',
   );
   const commentButtonVisible = await commentButtons
     .isVisible()

@@ -42,7 +42,7 @@ test.beforeAll(async ({ browser }) => {
         name: "Private Project",
         folderId: folder._id,
       },
-    }
+    },
   );
 
   file = await backendRequest(accounts.owner.context, "post", "/files", {
@@ -52,7 +52,7 @@ test.beforeAll(async ({ browser }) => {
         name: "image.jpg",
         mimeType: "image/jpeg",
         buffer: fs.readFileSync(
-          path.join(process.cwd(), "sample-files/image.jpg")
+          path.join(process.cwd(), "sample-files/image.jpg"),
         ),
       },
     },
@@ -66,7 +66,7 @@ test.beforeAll(async ({ browser }) => {
     {
       headers: { "Content-Type": "application/json" },
       data: { email: accounts.reviewer.email },
-    }
+    },
   );
 });
 
@@ -75,11 +75,11 @@ test.afterAll(() => removeTestAccounts(accounts));
 test("open file as owner", async function () {
   await accounts.owner.page.goto(`/files/${file._id}`);
   await expect(accounts.owner.page.getByRole("banner")).toContainText(
-    "image.jpg"
+    "image.jpg",
   );
   // Use a role-based selector for the file image
   await expect(
-    accounts.owner.page.getByRole("img", { name: "Click to leave a comment" })
+    accounts.owner.page.getByRole("img", { name: "Click to leave a comment" }),
   ).toBeVisible();
 });
 
@@ -131,11 +131,11 @@ test("open file as reviewer without invite", async function () {
           name: "private.jpg",
           mimeType: "image/jpeg",
           buffer: fs.readFileSync(
-            path.join(process.cwd(), "sample-files/image.jpg")
+            path.join(process.cwd(), "sample-files/image.jpg"),
           ),
         },
       },
-    }
+    },
   );
 
   const { page } = accounts.reviewer;
@@ -159,7 +159,7 @@ test("open file as reviewer without invite", async function () {
     await backendRequest(
       accounts.reviewer.context,
       "get",
-      `/files/${privateFile._id}`
+      `/files/${privateFile._id}`,
     );
     // If we get here, the request succeeded which is unexpected
     throw new Error("Reviewer should not have access to private file");
@@ -199,7 +199,7 @@ test("open file as reviewer with invite", async function () {
 
   // Check for the file image
   await expect(
-    page.getByRole("img", { name: "Click to leave a comment" })
+    page.getByRole("img", { name: "Click to leave a comment" }),
   ).toBeVisible({ timeout: 15000 });
 });
 
@@ -219,11 +219,11 @@ test("leave comment as reviewer", async function () {
           name: "reviewer-comment.jpg",
           mimeType: "image/jpeg",
           buffer: fs.readFileSync(
-            path.join(process.cwd(), "sample-files/image.jpg")
+            path.join(process.cwd(), "sample-files/image.jpg"),
           ),
         },
       },
-    }
+    },
   );
 
   // Go to the new file page

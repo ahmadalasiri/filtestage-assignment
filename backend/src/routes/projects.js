@@ -52,7 +52,7 @@ export default function ProjectRoutes({ db, session }) {
       .collection("projects")
       .find(
         { $or: [{ authorId: userId }, { reviewers: userId }] },
-        { sort: { createdAt: 1 } }
+        { sort: { createdAt: 1 } },
       )
       .toArray();
 
@@ -77,7 +77,7 @@ export default function ProjectRoutes({ db, session }) {
     if (!project.authorId.equals(userId)) {
       throw new ApiError(
         403,
-        "Forbidden: You don't have permission to modify this project"
+        "Forbidden: You don't have permission to modify this project",
       );
     }
 

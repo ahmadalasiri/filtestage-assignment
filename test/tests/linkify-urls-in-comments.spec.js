@@ -39,7 +39,7 @@ test.beforeAll(async ({ browser }) => {
         name: "linkify-test.jpg",
         mimeType: "image/jpeg",
         buffer: fs.readFileSync(
-          path.join(process.cwd(), "sample-files/image.jpg")
+          path.join(process.cwd(), "sample-files/image.jpg"),
         ),
       },
     },
@@ -58,7 +58,7 @@ test.beforeAll(async ({ browser }) => {
         x: 50,
         y: 50,
       },
-    }
+    },
   );
 });
 
@@ -79,7 +79,7 @@ test("URLs in comments should be converted to clickable links", async ({
     "linkify-test.jpg",
     {
       timeout: 15000,
-    }
+    },
   );
 
   // Wait for comments to load
@@ -102,8 +102,8 @@ test("URLs in comments should be converted to clickable links", async ({
   await expect(secondLink).toHaveText("www.github.com");
 
   // Optional: Verify that the links open in a new tab/window
-  const firstLinkTarget = await firstLink.getAttribute("target");
-  expect(firstLinkTarget).toBe("_blank");
+  const firstLinkTarget = firstLink;
+  await expect(firstLinkTarget).toHaveAttribute("target", "_blank");
 
   // Optional: Verify that the links have rel="noopener noreferrer" for security
   const firstLinkRel = await firstLink.getAttribute("rel");

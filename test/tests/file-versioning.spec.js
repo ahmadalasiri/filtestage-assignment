@@ -38,7 +38,7 @@ test.beforeAll(async ({ browser }) => {
         name: "versioning-test.jpg",
         mimeType: "image/jpeg",
         buffer: fs.readFileSync(
-          path.join(process.cwd(), "sample-files/image.jpg")
+          path.join(process.cwd(), "sample-files/image.jpg"),
         ),
       },
     },
@@ -78,7 +78,7 @@ test("user can upload a new version of a file", async ({ page }) => {
     "versioning-test.jpg",
     {
       timeout: 15000,
-    }
+    },
   );
 
   // Wait for the page to fully load
@@ -121,16 +121,14 @@ test("user can upload a new version of a file", async ({ page }) => {
   await ownerPage.waitForTimeout(2000);
 
   // Check that we don't have an error message
-  const errorVisible = await ownerPage
-    .locator("div.MuiAlert-standardError")
-    .isVisible();
-  expect(errorVisible).toBe(false);
+  const errorVisible = ownerPage.locator("div.MuiAlert-standardError");
+  await expect(errorVisible).toBeHidden();
 
   // Get the current version from the backend to verify it was updated
   const updatedFile = await backendRequest(
     accounts.owner.context,
     "get",
-    `/files/${file._id}`
+    `/files/${file._id}`,
   );
 
   // Log version for debugging

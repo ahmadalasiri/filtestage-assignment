@@ -35,23 +35,23 @@ const GlobalSearch = ({ open, onClose }) => {
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const navigate = useNavigate();
   const inputRef = useRef(null);
-  
+
   // Debounce search query to avoid excessive API calls
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedQuery(query);
     }, 300);
-    
+
     return () => clearTimeout(timer);
   }, [query]);
-  
+
   // Focus the search input when dialog opens
   useEffect(() => {
     if (open) {
       // Use multiple attempts to ensure focus is captured
       const attempts = [10, 50, 100, 200];
-      
-      const focusAttempts = attempts.map(delay => {
+
+      const focusAttempts = attempts.map((delay) => {
         return setTimeout(() => {
           if (inputRef.current) {
             inputRef.current.focus();
@@ -59,11 +59,11 @@ const GlobalSearch = ({ open, onClose }) => {
           }
         }, delay);
       });
-      
-      return () => focusAttempts.forEach(timer => clearTimeout(timer));
+
+      return () => focusAttempts.forEach((timer) => clearTimeout(timer));
     }
   }, [open]);
-  
+
   // Reset state when dialog closes
   useEffect(() => {
     if (!open) {
@@ -72,29 +72,29 @@ const GlobalSearch = ({ open, onClose }) => {
       setFilter("all");
     }
   }, [open]);
-  
+
   const { data, isLoading, isError } = useSearch({
     query: debouncedQuery,
     filter,
   });
-  
+
   const handleFilterChange = (_, newFilter) => {
     if (newFilter !== null) {
       setFilter(newFilter);
     }
   };
-  
+
   const handleClearSearch = () => {
     setQuery("");
     inputRef.current?.focus();
   };
-  
+
   const getNavigationPath = (type, item) => {
     // Use the navigationPath from the backend if available
     if (item.navigationPath) {
       return item.navigationPath;
     }
-    
+
     // Fallback to constructing the path manually
     if (type === "project") {
       return `/projects/${item._id}`;
@@ -103,37 +103,37 @@ const GlobalSearch = ({ open, onClose }) => {
     } else if (type === "comment") {
       return `/projects/${item.project._id}/files/${item.fileId}?commentId=${item._id}`;
     }
-    return '';
+    return "";
   };
 
   const handleItemClick = (type, item) => {
     onClose();
-    
+
     // Use the navigation path directly as provided by the backend
     let path = item.navigationPath;
-    
+
     // For comments, we need to add the commentId parameter
     if (type === "comment" && path) {
       path = `${path}?commentId=${item._id}`;
     }
-    
+
     navigate(path);
   };
-  
+
   return (
-    <Dialog 
-      open={open} 
-      onClose={onClose} 
-      fullWidth 
+    <Dialog
+      open={open}
+      onClose={onClose}
+      fullWidth
       maxWidth="md"
       disableRestoreFocus
       disableEnforceFocus
       disableAutoFocus
       PaperProps={{
-        sx: { 
+        sx: {
           minHeight: "60vh",
-          maxHeight: "80vh"
-        }
+          maxHeight: "80vh",
+        },
       }}
     >
       <Box sx={{ p: 2, display: "flex", alignItems: "center" }}>
@@ -156,14 +156,14 @@ const GlobalSearch = ({ open, onClose }) => {
               </InputAdornment>
             ),
             disableUnderline: true,
-            sx: { fontSize: "1.2rem" }
+            sx: { fontSize: "1.2rem" },
           }}
         />
         <IconButton onClick={onClose} edge="end">
           <CloseIcon />
         </IconButton>
       </Box>
-      
+
       <Box sx={{ px: 2, pb: 1 }}>
         <Typography variant="caption" color="text.secondary">
           Add filters
@@ -187,16 +187,16 @@ const GlobalSearch = ({ open, onClose }) => {
           </ToggleButton>
         </ToggleButtonGroup>
       </Box>
-      
+
       <Divider />
-      
+
       <DialogContent sx={{ p: 0 }}>
         {isLoading && debouncedQuery && (
           <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
             <CircularProgress />
           </Box>
         )}
-        
+
         {isError && (
           <Box sx={{ p: 3, textAlign: "center" }}>
             <Typography color="error">
@@ -204,7 +204,7 @@ const GlobalSearch = ({ open, onClose }) => {
             </Typography>
           </Box>
         )}
-        
+
         {!debouncedQuery && (
           <Box sx={{ p: 3, textAlign: "center" }}>
             <Typography color="text.secondary">
@@ -212,142 +212,170 @@ const GlobalSearch = ({ open, onClose }) => {
             </Typography>
           </Box>
         )}
-        
+
         {debouncedQuery && !isLoading && !isError && data && (
           <>
             {/* Projects Section */}
-            {(filter === "all" || filter === "projects") && data.projects.length > 0 && (
-              <>
-                <Box sx={{ px: 2, py: 1, bgcolor: "background.paper" }}>
-                  <Typography variant="subtitle2">
-                    Projects <Chip size="small" label={data.projects.length} />
-                  </Typography>
-                </Box>
-                <List disablePadding>
-                  {data.projects.map((project) => (
-                    <ListItem 
-                      key={project._id} 
-                      button 
-                      onClick={() => handleItemClick("project", project)}
-                    >
-                      <ListItemIcon>
-                        <FolderIcon color="primary" />
-                      </ListItemIcon>
-                      <ListItemText 
-                        primary={project.name}
-                        secondary={
-                          <>
-                            <Typography variant="body2" component="span">{project.path}</Typography>
-                            <Typography variant="caption" display="block" color="text.secondary">
-                              Path: {project.navigationPath || `/projects/${project._id}`}
-                            </Typography>
-                          </>
-                        }
-                      />
-                    </ListItem>
-                  ))}
-                </List>
-                <Divider />
-              </>
-            )}
-            
+            {(filter === "all" || filter === "projects") &&
+              data.projects.length > 0 && (
+                <>
+                  <Box sx={{ px: 2, py: 1, bgcolor: "background.paper" }}>
+                    <Typography variant="subtitle2">
+                      Projects{" "}
+                      <Chip size="small" label={data.projects.length} />
+                    </Typography>
+                  </Box>
+                  <List disablePadding>
+                    {data.projects.map((project) => (
+                      <ListItem
+                        key={project._id}
+                        button
+                        onClick={() => handleItemClick("project", project)}
+                      >
+                        <ListItemIcon>
+                          <FolderIcon color="primary" />
+                        </ListItemIcon>
+                        <ListItemText
+                          primary={project.name}
+                          secondary={
+                            <>
+                              <Typography variant="body2" component="span">
+                                {project.path}
+                              </Typography>
+                              <Typography
+                                variant="caption"
+                                display="block"
+                                color="text.secondary"
+                              >
+                                Path:{" "}
+                                {project.navigationPath ||
+                                  `/projects/${project._id}`}
+                              </Typography>
+                            </>
+                          }
+                        />
+                      </ListItem>
+                    ))}
+                  </List>
+                  <Divider />
+                </>
+              )}
+
             {/* Files Section */}
-            {(filter === "all" || filter === "files") && data.files.length > 0 && (
-              <>
-                <Box sx={{ px: 2, py: 1, bgcolor: "background.paper" }}>
-                  <Typography variant="subtitle2">
-                    Files <Chip size="small" label={data.files.length} />
-                  </Typography>
-                </Box>
-                <List disablePadding>
-                  {data.files.map((file) => (
-                    <ListItem 
-                      key={file._id} 
-                      button 
-                      onClick={() => handleItemClick("file", file)}
-                    >
-                      <ListItemIcon>
-                        <DescriptionIcon />
-                      </ListItemIcon>
-                      <ListItemText 
-                        primary={file.name}
-                        secondary={
-                          <>
-                            <Typography variant="body2" component="span">{`${file.path} > ${file.project?.name || ""}`}</Typography>
-                            <Typography variant="caption" display="block" color="text.secondary">
-                              Path: {file.navigationPath || `/files/${file._id}`}
-                            </Typography>
-                          </>
-                        }
-                      />
-                    </ListItem>
-                  ))}
-                </List>
-                <Divider />
-              </>
-            )}
-            
+            {(filter === "all" || filter === "files") &&
+              data.files.length > 0 && (
+                <>
+                  <Box sx={{ px: 2, py: 1, bgcolor: "background.paper" }}>
+                    <Typography variant="subtitle2">
+                      Files <Chip size="small" label={data.files.length} />
+                    </Typography>
+                  </Box>
+                  <List disablePadding>
+                    {data.files.map((file) => (
+                      <ListItem
+                        key={file._id}
+                        button
+                        onClick={() => handleItemClick("file", file)}
+                      >
+                        <ListItemIcon>
+                          <DescriptionIcon />
+                        </ListItemIcon>
+                        <ListItemText
+                          primary={file.name}
+                          secondary={
+                            <>
+                              <Typography
+                                variant="body2"
+                                component="span"
+                              >{`${file.path} > ${file.project?.name || ""}`}</Typography>
+                              <Typography
+                                variant="caption"
+                                display="block"
+                                color="text.secondary"
+                              >
+                                Path:{" "}
+                                {file.navigationPath || `/files/${file._id}`}
+                              </Typography>
+                            </>
+                          }
+                        />
+                      </ListItem>
+                    ))}
+                  </List>
+                  <Divider />
+                </>
+              )}
+
             {/* Comments Section */}
-            {(filter === "all" || filter === "comments") && data.comments.length > 0 && (
-              <>
-                <Box sx={{ px: 2, py: 1, bgcolor: "background.paper" }}>
-                  <Typography variant="subtitle2">
-                    Comments <Chip size="small" label={data.comments.length} />
+            {(filter === "all" || filter === "comments") &&
+              data.comments.length > 0 && (
+                <>
+                  <Box sx={{ px: 2, py: 1, bgcolor: "background.paper" }}>
+                    <Typography variant="subtitle2">
+                      Comments{" "}
+                      <Chip size="small" label={data.comments.length} />
+                    </Typography>
+                  </Box>
+                  <List disablePadding>
+                    {data.comments.map((comment) => (
+                      <ListItem
+                        key={comment._id}
+                        button
+                        onClick={() => handleItemClick("comment", comment)}
+                      >
+                        <ListItemIcon>
+                          <CommentIcon />
+                        </ListItemIcon>
+                        <ListItemText
+                          primary={
+                            <Typography
+                              sx={{
+                                display: "-webkit-box",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                WebkitLineClamp: 2,
+                                WebkitBoxOrient: "vertical",
+                              }}
+                            >
+                              {comment.body}
+                            </Typography>
+                          }
+                          secondary={
+                            <>
+                              <Typography variant="body2" component="span">
+                                {`${comment.path} > ${comment.project?.name || ""} > ${comment.file?.name || ""}`}
+                              </Typography>
+                              <Typography
+                                variant="caption"
+                                display="block"
+                                color="text.secondary"
+                              >
+                                Path:{" "}
+                                {comment.navigationPath ||
+                                  `/files/${comment.fileId}`}
+                                ?commentId={comment._id}
+                              </Typography>
+                            </>
+                          }
+                        />
+                      </ListItem>
+                    ))}
+                  </List>
+                </>
+              )}
+
+            {/* No Results */}
+            {debouncedQuery &&
+              !isLoading &&
+              data.projects.length === 0 &&
+              data.files.length === 0 &&
+              data.comments.length === 0 && (
+                <Box sx={{ p: 3, textAlign: "center" }}>
+                  <Typography color="text.secondary">
+                    No results found for &quot;{debouncedQuery}&quot;
                   </Typography>
                 </Box>
-                <List disablePadding>
-                  {data.comments.map((comment) => (
-                    <ListItem 
-                      key={comment._id} 
-                      button 
-                      onClick={() => handleItemClick("comment", comment)}
-                    >
-                      <ListItemIcon>
-                        <CommentIcon />
-                      </ListItemIcon>
-                      <ListItemText 
-                        primary={
-                          <Typography
-                            sx={{
-                              display: '-webkit-box',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              WebkitLineClamp: 2,
-                              WebkitBoxOrient: 'vertical',
-                            }}
-                          >
-                            {comment.body}
-                          </Typography>
-                        }
-                        secondary={
-                          <>
-                            <Typography variant="body2" component="span">
-                              {`${comment.path} > ${comment.project?.name || ""} > ${comment.file?.name || ""}`}
-                            </Typography>
-                            <Typography variant="caption" display="block" color="text.secondary">
-                              Path: {comment.navigationPath || `/files/${comment.fileId}`}?commentId={comment._id}
-                            </Typography>
-                          </>
-                        }
-                      />
-                    </ListItem>
-                  ))}
-                </List>
-              </>
-            )}
-            
-            {/* No Results */}
-            {debouncedQuery && 
-             !isLoading && 
-             data.projects.length === 0 && 
-             data.files.length === 0 && 
-             data.comments.length === 0 && (
-              <Box sx={{ p: 3, textAlign: "center" }}>
-                <Typography color="text.secondary">
-                  No results found for "{debouncedQuery}"
-                </Typography>
-              </Box>
-            )}
+              )}
           </>
         )}
       </DialogContent>

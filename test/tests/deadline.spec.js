@@ -38,7 +38,7 @@ test.beforeAll(async ({ browser }) => {
         name: "deadline-test.jpg",
         mimeType: "image/jpeg",
         buffer: fs.readFileSync(
-          path.join(process.cwd(), "sample-files/image.jpg")
+          path.join(process.cwd(), "sample-files/image.jpg"),
         ),
       },
     },
@@ -78,7 +78,7 @@ test("user can set and update file deadline", async ({ page }) => {
     "deadline-test.jpg",
     {
       timeout: 15000,
-    }
+    },
   );
 
   // Wait for the page to fully load

@@ -37,19 +37,15 @@ export const sendEmail = async (to, subject, template) => {
     });
 
     // Verify SMTP connection configuration
-    try {
-      await new Promise((resolve, reject) => {
-        mailer.verify((err) => {
-          if (err) {
-            reject(new Error(`SMTP verification error: ${err.message}`));
-          } else {
-            resolve();
-          }
-        });
+    await new Promise((resolve, reject) => {
+      mailer.verify((err) => {
+        if (err) {
+          reject(new Error(`SMTP verification error: ${err.message}`));
+        } else {
+          resolve();
+        }
       });
-    } catch (verifyError) {
-      throw verifyError;
-    }
+    });
 
     // Set up error handler
     mailer.on("error", (err) => {
