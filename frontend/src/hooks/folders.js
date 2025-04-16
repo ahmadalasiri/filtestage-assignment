@@ -61,19 +61,3 @@ export function useUpdateFolder() {
     },
   });
 }
-
-// Delete a folder
-export function useDeleteFolder() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ folderId }) =>
-      backendFetch(`/folders/${folderId}`, {
-        method: "DELETE",
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries(["folders"]);
-      queryClient.invalidateQueries(["folderHierarchy"]);
-    },
-  });
-}

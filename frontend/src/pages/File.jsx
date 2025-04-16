@@ -78,7 +78,6 @@ const ReplyForm = ({ fileId, parentId, onCancel }) => {
       {
         fileId,
         body: replyText,
-        // Use the same coordinates as the parent comment
         x: 0,
         y: 0,
         parentId,

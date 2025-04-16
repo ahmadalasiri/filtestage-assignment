@@ -43,7 +43,6 @@ import {
   useCreateFolder,
   useFolderHierarchy,
   useUpdateFolder,
-  useDeleteFolder,
 } from "../hooks/folders";
 import { useFiles, useUploadFile } from "../hooks/files";
 import { useSession } from "../hooks/auth";
@@ -63,7 +62,6 @@ const FolderItem = ({ folder, selectedProject, navigate, level = 0 }) => {
   const createProject = useCreateProject();
   const createFolder = useCreateFolder();
   const updateFolder = useUpdateFolder();
-  const deleteFolder = useDeleteFolder();
 
   const hasChildren =
     (folder.children && folder.children.length > 0) ||
@@ -121,17 +119,6 @@ const FolderItem = ({ folder, selectedProject, navigate, level = 0 }) => {
       {
         onSuccess: () => {
           setEditFolderDialog(false);
-        },
-      },
-    );
-  };
-
-  const _handleDeleteFolder = () => {
-    deleteFolder.mutate(
-      { folderId: folder._id },
-      {
-        onSuccess: () => {
-          handleMenuClose();
         },
       },
     );
