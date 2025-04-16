@@ -87,7 +87,7 @@ const ReplyForm = ({ fileId, parentId, onCancel }) => {
           setReplyText("");
           onCancel();
         },
-      }
+      },
     );
   };
 
@@ -390,14 +390,14 @@ const CommentBar = ({ fileId }) => {
       // Find the comment in all pages
       const allComments = data.pages.flatMap((page) => page.comments.flat());
       const targetComment = allComments.find(
-        (comment) => comment._id === commentId
+        (comment) => comment._id === commentId,
       );
 
       if (targetComment) {
         // Find the comment element and scroll to it
         setTimeout(() => {
           const commentElement = document.getElementById(
-            `comment-${commentId}`
+            `comment-${commentId}`,
           );
           if (commentElement) {
             commentElement.scrollIntoView({
@@ -487,7 +487,7 @@ const ImageViewer = ({ file, isAnnotationMode, setIsAnnotationMode }) => {
       if (!localComments.some((c) => c._id === comment._id)) {
         // Force a refetch to ensure we have the latest data
         refetch().catch((err) =>
-          console.error("Error refetching comments:", err)
+          console.error("Error refetching comments:", err),
         );
 
         // Add the new comment to our local state immediately for real-time feedback
@@ -524,7 +524,7 @@ const ImageViewer = ({ file, isAnnotationMode, setIsAnnotationMode }) => {
         }, 100);
       }
     },
-    [localComments, refetch]
+    [localComments, refetch],
   );
 
   // Use the Socket.IO hook to connect to the file room
@@ -659,7 +659,7 @@ const ImageViewer = ({ file, isAnnotationMode, setIsAnnotationMode }) => {
         window.removeEventListener("resize", updateMarkerContainer);
       };
     },
-    [imageRef]
+    [imageRef],
   );
 
   // Close notification
@@ -982,10 +982,10 @@ const DeadlineDialog = ({ file, onClose, open }) => {
     : new Date(Date.now() + 24 * 60 * 60 * 1000);
 
   const [deadlineDate, setDeadlineDate] = useState(
-    initialDate.toISOString().split("T")[0]
+    initialDate.toISOString().split("T")[0],
   );
   const [deadlineTime, setDeadlineTime] = useState(
-    initialDate.toTimeString().slice(0, 5) // Format: HH:MM
+    initialDate.toTimeString().slice(0, 5), // Format: HH:MM
   );
 
   const updateDeadline = useUpdateDeadline();
@@ -1012,7 +1012,7 @@ const DeadlineDialog = ({ file, onClose, open }) => {
         onSuccess: () => {
           onClose();
         },
-      }
+      },
     );
   };
 
@@ -1026,7 +1026,7 @@ const DeadlineDialog = ({ file, onClose, open }) => {
         onSuccess: () => {
           onClose();
         },
-      }
+      },
     );
   };
 
@@ -1107,7 +1107,7 @@ const UploadVersionDialog = ({ file, onClose, open }) => {
           setNewFile(null);
           onClose();
         },
-      }
+      },
     );
   };
 
