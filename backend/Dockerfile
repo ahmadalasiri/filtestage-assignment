@@ -11,4 +11,4 @@ COPY index.js ./
 
 VOLUME [ "/backend/uploads" ]
 
-CMD ["npm", "start"]
+CMD ["npm", "run", "dev"]
