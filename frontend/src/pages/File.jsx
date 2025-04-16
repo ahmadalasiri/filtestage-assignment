@@ -56,6 +56,15 @@ const ReplyForm = ({ fileId, parentId, onCancel }) => {
   const createComment = useCreateComment({ fileId });
   const [replyText, setReplyText] = useState("");
   const { data: file } = useSelectedFile();
+  const { data: session } = useSession();
+
+  // Check if deadline has passed
+  const isDeadlinePassed =
+    file?.deadline && new Date(file.deadline) < new Date();
+  // Check if user is the file owner
+  const isFileOwner = session?.userId === file?.authorId;
+  // Disable form if deadline has passed and user is not the owner
+  const isDisabled = isDeadlinePassed && !isFileOwner;
 
   // Use the mentions hook to handle @mentions
   const {
@@ -72,7 +81,7 @@ const ReplyForm = ({ fileId, parentId, onCancel }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!replyText.trim()) return;
+    if (!replyText.trim() || isDisabled) return;
 
     createComment.mutate(
       {
@@ -93,6 +102,11 @@ const ReplyForm = ({ fileId, parentId, onCancel }) => {
 
   return (
     <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1, mb: 2 }}>
+      {isDisabled && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          Review deadline has passed. Comments can no longer be added.
+        </Alert>
+      )}
       <MentionInput
         fullWidth
         placeholder="Write a reply... (Use @ to mention users)"
@@ -112,6 +126,7 @@ const ReplyForm = ({ fileId, parentId, onCancel }) => {
         onKeyDown={handleInputKeyDown}
         inputRef={inputRef}
         sx={{ mb: 1 }}
+        disabled={isDisabled}
       />
 
       {/* Mention suggestions dropdown */}
@@ -131,7 +146,7 @@ const ReplyForm = ({ fileId, parentId, onCancel }) => {
           size="small"
           variant="contained"
           type="submit"
-          disabled={!replyText.trim() || createComment.isPending}
+          disabled={!replyText.trim() || createComment.isPending || isDisabled}
         >
           Reply
         </Button>
@@ -467,6 +482,17 @@ const ImageViewer = ({ file, isAnnotationMode, setIsAnnotationMode }) => {
     message: "",
   });
 
+  // Get session to check if user is file owner
+  const { data: session } = useSession();
+
+  // Check if deadline has passed
+  const isDeadlinePassed =
+    file?.deadline && new Date(file.deadline) < new Date();
+  // Check if user is the file owner
+  const isFileOwner = session?.userId === file.authorId;
+  // Disable commenting if deadline has passed and user is not the owner
+  const isCommentingDisabled = isDeadlinePassed && !isFileOwner;
+
   // Use the passed annotation mode state instead of local state
   const [pendingComment, setPendingComment] = useState(false);
   const canvasContainerRef = useRef(null);
@@ -548,8 +574,8 @@ const ImageViewer = ({ file, isAnnotationMode, setIsAnnotationMode }) => {
   };
 
   const handleImageClick = (e) => {
-    if (isAnnotationMode) {
-      // In annotation mode, clicks are handled by the canvas
+    // Don't allow commenting if deadline has passed and user is not the owner
+    if (isAnnotationMode || isCommentingDisabled) {
       return;
     }
 
@@ -566,7 +592,7 @@ const ImageViewer = ({ file, isAnnotationMode, setIsAnnotationMode }) => {
 
   const handleSubmitComment = (e) => {
     e?.preventDefault();
-    if (!commentText.trim()) return;
+    if (!commentText.trim() || isCommentingDisabled) return;
 
     const commentData = {
       fileId: file._id,
@@ -597,8 +623,18 @@ const ImageViewer = ({ file, isAnnotationMode, setIsAnnotationMode }) => {
     setAnnotation(null);
   };
 
-  // Toggle annotation mode (now uses the passed setter)
+  // Toggle annotation mode
   const toggleAnnotationMode = () => {
+    // Don't allow annotation mode if deadline has passed and user is not the owner
+    if (isCommentingDisabled) {
+      // Show notification or alert that comments are disabled
+      setNotification({
+        open: true,
+        message: "Review deadline has passed. Annotations cannot be added.",
+      });
+      return;
+    }
+
     setIsAnnotationMode(!isAnnotationMode);
     if (isAnnotationMode) {
       // If turning off annotation mode with an annotation, ask to submit comment
@@ -713,8 +749,8 @@ const ImageViewer = ({ file, isAnnotationMode, setIsAnnotationMode }) => {
         </Alert>
       </Snackbar>
 
-      {/* Annotation Mode Indicator */}
-      {isAnnotationMode && (
+      {/* Deadline passed indicator */}
+      {isCommentingDisabled && (
         <Box
           sx={{
             position: "absolute",
@@ -722,7 +758,7 @@ const ImageViewer = ({ file, isAnnotationMode, setIsAnnotationMode }) => {
             left: "50%",
             transform: "translateX(-50%)",
             zIndex: 10,
-            backgroundColor: "rgba(0, 0, 0, 0.7)",
+            backgroundColor: "rgba(244, 67, 54, 0.9)",
             color: "white",
             padding: "8px 16px",
             borderRadius: 2,
@@ -731,19 +767,10 @@ const ImageViewer = ({ file, isAnnotationMode, setIsAnnotationMode }) => {
             gap: 1,
           }}
         >
-          <BrushIcon />
+          <AccessTimeIcon />
           <Typography variant="body2">
-            Annotation Mode - Draw on the image
+            Review deadline has passed. Comments can no longer be added.
           </Typography>
-          <Button
-            size="small"
-            variant="outlined"
-            color="inherit"
-            onClick={toggleAnnotationMode}
-            sx={{ ml: 2 }}
-          >
-            Exit
-          </Button>
         </Box>
       )}
 
@@ -921,6 +948,12 @@ const ImageViewer = ({ file, isAnnotationMode, setIsAnnotationMode }) => {
             </IconButton>
           </Box>
 
+          {isCommentingDisabled && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              Review deadline has passed. Comments can no longer be added.
+            </Alert>
+          )}
+
           <Box component="form" onSubmit={handleSubmitComment}>
             <MentionInput
               autoFocus
@@ -941,6 +974,7 @@ const ImageViewer = ({ file, isAnnotationMode, setIsAnnotationMode }) => {
               onKeyDown={handleInputKeyDown}
               inputRef={inputRef}
               sx={{ mb: 1 }}
+              disabled={isCommentingDisabled}
             />
 
             <MentionSuggestions
@@ -961,7 +995,7 @@ const ImageViewer = ({ file, isAnnotationMode, setIsAnnotationMode }) => {
                 <Button
                   variant="contained"
                   type="submit"
-                  disabled={!commentText.trim()}
+                  disabled={!commentText.trim() || isCommentingDisabled}
                 >
                   Submit
                 </Button>
@@ -1247,6 +1281,12 @@ const FileHeader = ({ file, onToggleAnnotationMode, isAnnotationMode }) => {
     };
   }, []);
 
+  // Check if deadline has passed
+  const isDeadlinePassed =
+    file?.deadline && new Date(file.deadline) < new Date();
+  // Disable annotation button if deadline has passed and user is not the owner
+  const isAnnotationDisabled = isDeadlinePassed && !isOwner;
+
   return (
     <Box
       sx={{
@@ -1294,6 +1334,8 @@ const FileHeader = ({ file, onToggleAnnotationMode, isAnnotationMode }) => {
           color={isAnnotationMode ? "secondary" : "primary"}
           onClick={onToggleAnnotationMode}
           sx={{ mr: 1 }}
+          disabled={isAnnotationDisabled}
+          title={isAnnotationDisabled ? "Review deadline has passed" : ""}
         >
           {isAnnotationMode ? "Exit Annotation Mode" : "Annotate"}
         </Button>

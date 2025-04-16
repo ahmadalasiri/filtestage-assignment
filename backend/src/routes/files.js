@@ -17,7 +17,6 @@ export default function FileRoutes({ db, session }) {
   router.post("/", upload.single("file"), async (req, res) => {
     const { userId } = await session.get(req);
     if (!userId) {
-      // User not authenticated
       throw new ApiError(401, "Not authenticated");
     }
 

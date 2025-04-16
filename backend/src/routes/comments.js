@@ -97,6 +97,38 @@ export default function CommentRoutes({ db, session }) {
       })
       .parse(req.body);
 
+    // Get the file to check deadline
+    const file = await db.collection("files").findOne({ _id: fileId });
+    if (!file) {
+      throw new ApiError(404, "File not found");
+    }
+
+    // Get the project to check if the user is a reviewer
+    const project = await db
+      .collection("projects")
+      .findOne({ _id: file.projectId });
+    if (!project) {
+      throw new ApiError(404, "Project not found");
+    }
+
+    const isFileOwner = file.authorId.equals(userId);
+    const isReviewer = project.reviewers.some((reviewer) =>
+      reviewer.equals(userId),
+    );
+
+    // Check deadline only for reviewers, not for file owners
+    if (isReviewer && !isFileOwner && file.deadline) {
+      const now = new Date();
+      const deadline = new Date(file.deadline);
+
+      if (now > deadline) {
+        throw new ApiError(
+          403,
+          "Review deadline has passed. Comments can no longer be added.",
+        );
+      }
+    }
+
     // Create the comment object
     const commentData = {
       fileId,
