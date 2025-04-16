@@ -232,7 +232,6 @@ export default function FileRoutes({ db, session }) {
       name: req.file.originalname || file.name,
       path: req.file.path,
       createdAt: new Date(),
-      deadline: file.deadline,
       version: nextVersion,
       originalFileId: originalFileId,
     });
