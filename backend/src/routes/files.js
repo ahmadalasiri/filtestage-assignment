@@ -188,18 +188,21 @@ export default function FileRoutes({ db, session }) {
       throw new ApiError(400, "Invalid file type");
     }
 
-    const originalFileId = new ObjectId(req.params.id);
-    const originalFile = await db
-      .collection("files")
-      .findOne({ _id: originalFileId });
+    const fileId = new ObjectId(req.params.id);
+    const file = await db.collection("files").findOne({ _id: fileId });
 
-    if (!originalFile) {
+    if (!file) {
       throw new ApiError(404, "Original file not found");
+    }
+
+    let originalFileId = file._id;
+    if (file.originalFileId) {
+      originalFileId = file.originalFileId;
     }
 
     const project = await db
       .collection("projects")
-      .findOne({ _id: originalFile.projectId });
+      .findOne({ _id: file.projectId });
     if (!project) {
       throw new ApiError(404, "Project not found");
     }
@@ -225,12 +228,12 @@ export default function FileRoutes({ db, session }) {
       latestVersion.length > 0 ? latestVersion[0].version + 1 : 2;
 
     const { insertedId } = await db.collection("files").insertOne({
-      projectId: originalFile.projectId,
+      projectId: file.projectId,
       authorId: userId,
-      name: req.file.originalname || originalFile.name,
+      name: req.file.originalname || file.name,
       path: req.file.path,
       createdAt: new Date(),
-      deadline: originalFile.deadline,
+      deadline: file.deadline,
       version: nextVersion,
       originalFileId: originalFileId,
     });
