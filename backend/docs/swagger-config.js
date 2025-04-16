@@ -29,8 +29,6 @@ export function setupSwagger(app) {
         customCss: ".swagger-ui .topbar { display: none }",
       }),
     );
-
-    console.log("Swagger documentation set up successfully");
   } catch (error) {
     console.error("Error setting up Swagger documentation:", error);
   }

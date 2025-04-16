@@ -1,4 +1,4 @@
-import { useState /* useRef */ } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Avatar,
@@ -24,8 +24,6 @@ import {
   MenuItem,
   Divider,
   Menu,
-  // Autocomplete,
-  // Paper,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
@@ -34,7 +32,6 @@ import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
-// import DeleteIcon from "@mui/icons-material/Delete";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import {
   useInviteReviewer,

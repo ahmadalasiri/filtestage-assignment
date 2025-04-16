@@ -30,5 +30,4 @@ export function retryConfig(failureCount, error) {
   }
 }
 
-// expose for testing
 window.backendFetch = backendFetch;

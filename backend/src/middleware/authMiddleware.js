@@ -20,5 +20,7 @@ export const createAuthMiddleware = (session) => {
     }
   };
 
-  return authenticate;
+  return {
+    authenticate,
+  };
 };
