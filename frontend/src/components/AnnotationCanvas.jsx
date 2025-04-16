@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, useCallback } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { Box } from "@mui/material";
 
 const BRUSH_SIZES = [2, 4, 6, 8];
@@ -17,7 +17,7 @@ const AnnotationCanvas = ({
   const imageRef = useRef(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [context, setContext] = useState(null);
-  const [brushSize /* setBrushSize */] = useState(BRUSH_SIZES[1]);
+  const [brushSize, setBrushSize] = useState(BRUSH_SIZES[1]);
   const [history, setHistory] = useState([]);
   const [currentStep, setCurrentStep] = useState(-1);
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -58,27 +58,6 @@ const AnnotationCanvas = ({
     imageRef.current = img;
   }, [imageUrl, width, height]);
 
-  // Save current canvas state to history
-  const saveCanvasState = useCallback(() => {
-    if (!canvasRef.current || !context) return;
-
-    const canvas = canvasRef.current;
-    const imageData = canvas.toDataURL("image/png");
-
-    // If we're in the middle of the history, remove all future states
-    if (currentStep < history.length - 1) {
-      setHistory(history.slice(0, currentStep + 1));
-    }
-
-    setHistory([...history, imageData]);
-    setCurrentStep(currentStep + 1);
-
-    // Notify parent component of the annotation
-    if (onAnnotationChange) {
-      onAnnotationChange(imageData);
-    }
-  }, [context, currentStep, history, onAnnotationChange]);
-
   // Initialize canvas
   useEffect(() => {
     if (!canvasRef.current || !imageLoaded) return;
@@ -106,7 +85,28 @@ const AnnotationCanvas = ({
     } else {
       saveCanvasState();
     }
-  }, [imageLoaded, imageDimensions, initialAnnotation, saveCanvasState]);
+  }, [imageLoaded, imageDimensions, initialAnnotation]);
+
+  // Save current canvas state to history
+  const saveCanvasState = () => {
+    if (!canvasRef.current || !context) return;
+
+    const canvas = canvasRef.current;
+    const imageData = canvas.toDataURL("image/png");
+
+    // If we're in the middle of the history, remove all future states
+    if (currentStep < history.length - 1) {
+      setHistory(history.slice(0, currentStep + 1));
+    }
+
+    setHistory([...history, imageData]);
+    setCurrentStep(currentStep + 1);
+
+    // Notify parent component of the annotation
+    if (onAnnotationChange) {
+      onAnnotationChange(imageData);
+    }
+  };
 
   // Start drawing
   const startDrawing = (e) => {
@@ -207,6 +207,7 @@ const AnnotationCanvas = ({
                 width: "100%",
                 height: "100%",
                 cursor: "crosshair",
+                touchAction: "none", // Added to disable browser touch gestures
               }}
               onMouseDown={startDrawing}
               onMouseMove={draw}
@@ -215,6 +216,7 @@ const AnnotationCanvas = ({
               onTouchStart={handleTouchStart}
               onTouchMove={handleTouchMove}
               onTouchEnd={stopDrawing}
+              onTouchCancel={stopDrawing} // Added to handle touch cancellation
             />
           </Box>
         </Box>
