@@ -95,5 +95,10 @@ export default function UserRoutes({ db, session }) {
     res.status(200).json(user);
   });
 
+  router.get("/", async (req, res) => {
+    const users = await db.collection("users").find({}).toArray();
+    res.status(200).json(users);
+  });
+
   return router;
 }
