@@ -7,6 +7,7 @@ import { handleCommentMentions } from "../services/mentionService.js";
 export default function CommentRoutes({ db, session }) {
   const router = express.Router();
 
+  // Enhanced endpoint to only return parent comments with pagination
   router.get("/", async (req, res) => {
     const { userId } = await session.get(req);
     if (!userId) {
@@ -29,53 +30,195 @@ export default function CommentRoutes({ db, session }) {
     const limitNum = Math.min(parseInt(limit, 10) || 20, 100); // Max 100 items per page
     const skip = (pageNum - 1) * limitNum;
 
-    const allComments = await db
+    // Get total count for pagination
+    const totalParentComments = await db
       .collection("comments")
-      .find({ fileId })
-      .sort({ createdAt: 1 })
+      .countDocuments({ fileId, parentId: { $exists: false } });
+
+    // Use aggregation pipeline to get comments with author info and reply counts in one query
+    const commentsPipeline = [
+      // Match parent comments for the specified file
+      {
+        $match: {
+          fileId,
+          parentId: { $exists: false },
+        },
+      },
+      // Sort by creation time
+      {
+        $sort: {
+          createdAt: 1,
+        },
+      },
+      // Apply pagination
+      {
+        $skip: skip,
+      },
+      {
+        $limit: limitNum,
+      },
+      // Lookup author information
+      {
+        $lookup: {
+          from: "users",
+          localField: "authorId",
+          foreignField: "_id",
+          as: "authorInfo",
+        },
+      },
+      // Convert author array to single object
+      {
+        $addFields: {
+          author: { $arrayElemAt: ["$authorInfo", 0] },
+        },
+      },
+      // Lookup reply count
+      {
+        $lookup: {
+          from: "comments",
+          let: { commentId: "$_id" },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ["$parentId", "$$commentId"] },
+              },
+            },
+            {
+              $count: "replyCount",
+            },
+          ],
+          as: "replyData",
+        },
+      },
+      // Convert reply count array to single value
+      {
+        $addFields: {
+          replyCount: {
+            $cond: {
+              if: { $gt: [{ $size: "$replyData" }, 0] },
+              then: { $arrayElemAt: ["$replyData.replyCount", 0] },
+              else: 0,
+            },
+          },
+        },
+      },
+      // Remove temporary fields
+      {
+        $project: {
+          authorInfo: 0,
+          replyData: 0,
+        },
+      },
+    ];
+
+    const commentsWithAuthors = await db
+      .collection("comments")
+      .aggregate(commentsPipeline)
       .toArray();
 
-    // Create a map to group replies with their parent comments
-    const commentGroups = new Map();
-    const topLevelComments = [];
-
-    // First, identify all top-level comments and create groups
-    allComments.forEach((comment) => {
-      if (!comment.parentId) {
-        topLevelComments.push(comment);
-        commentGroups.set(comment._id.toString(), [comment]);
-      }
-    });
-
-    // Then, add replies to their respective parent groups
-    allComments.forEach((comment) => {
-      if (comment.parentId) {
-        const parentId = comment.parentId.toString();
-        if (commentGroups.has(parentId)) {
-          commentGroups.get(parentId).push(comment);
-        }
-      }
-    });
-
-    // Convert the map to a 2D array structure
-    const nestedComments = Array.from(commentGroups.values());
-
-    // Sort the outer array by the creation date of the first comment in each group (parent comment)
-    nestedComments.sort(
-      (a, b) => new Date(a[0].createdAt) - new Date(b[0].createdAt),
-    );
-
-    // Apply pagination
-    const totalGroups = nestedComments.length;
-    const paginatedComments = nestedComments.slice(skip, skip + limitNum);
-
     res.json({
-      comments: paginatedComments,
+      comments: commentsWithAuthors,
       pagination: {
-        total: totalGroups,
+        total: totalParentComments,
         page: pageNum,
         limit: limitNum,
-        totalPages: Math.ceil(totalGroups / limitNum),
+        totalPages: Math.ceil(totalParentComments / limitNum),
+      },
+    });
+  });
+
+  // Get children comments for a specific parent comment
+  router.get("/:parentId/replies", async (req, res) => {
+    const { userId } = await session.get(req);
+    if (!userId) {
+      throw new ApiError(401, "Not authenticated");
+    }
+
+    const { parentId } = z
+      .object({
+        parentId: StringObjectId,
+      })
+      .parse(req.params);
+
+    const { page = 1, limit = 20 } = z
+      .object({
+        page: z.string().optional(),
+        limit: z.string().optional(),
+      })
+      .parse(req.query);
+
+    const pageNum = parseInt(page, 10) || 1;
+    const limitNum = Math.min(parseInt(limit, 10) || 20, 100); // Max 100 items per page
+    const skip = (pageNum - 1) * limitNum;
+
+    // Verify parent comment exists
+    const parentComment = await db
+      .collection("comments")
+      .findOne({ _id: parentId });
+    if (!parentComment) {
+      throw new ApiError(404, "Parent comment not found");
+    }
+
+    // Get total count for pagination
+    const totalChildComments = await db
+      .collection("comments")
+      .countDocuments({ parentId });
+
+    // Use aggregation pipeline to get child comments with author info
+    const childCommentsPipeline = [
+      // Match child comments for the specified parent
+      {
+        $match: {
+          parentId,
+        },
+      },
+      // Sort by creation time
+      {
+        $sort: {
+          createdAt: 1,
+        },
+      },
+      // Apply pagination
+      {
+        $skip: skip,
+      },
+      {
+        $limit: limitNum,
+      },
+      // Lookup author information
+      {
+        $lookup: {
+          from: "users",
+          localField: "authorId",
+          foreignField: "_id",
+          as: "authorInfo",
+        },
+      },
+      // Convert author array to single object and remove temporary fields
+      {
+        $addFields: {
+          author: { $arrayElemAt: ["$authorInfo", 0] },
+        },
+      },
+      {
+        $project: {
+          authorInfo: 0,
+        },
+      },
+    ];
+
+    const commentsWithAuthors = await db
+      .collection("comments")
+      .aggregate(childCommentsPipeline)
+      .toArray();
+
+    res.json({
+      comments: commentsWithAuthors,
+      pagination: {
+        total: totalChildComments,
+        page: pageNum,
+        limit: limitNum,
+        totalPages: Math.ceil(totalChildComments / limitNum),
       },
     });
   });
@@ -144,6 +287,14 @@ export default function CommentRoutes({ db, session }) {
     }
 
     if (parentId) {
+      // Verify parent comment exists
+      const parentComment = await db
+        .collection("comments")
+        .findOne({ _id: parentId });
+      if (!parentComment) {
+        throw new ApiError(404, "Parent comment not found");
+      }
+
       commentData.parentId = parentId;
     }
 

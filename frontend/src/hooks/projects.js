@@ -24,6 +24,7 @@ export function useCreateProject() {
       }),
     onSuccess: (project) => {
       queryClient.setQueryData(["projects"], (data) => [...data, project]);
+      queryClient.invalidateQueries(["folderHierarchy"]);
       navigate(`/projects/${project._id}`);
     },
   });

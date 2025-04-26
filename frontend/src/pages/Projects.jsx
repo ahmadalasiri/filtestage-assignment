@@ -49,6 +49,7 @@ import { useSession } from "../hooks/auth";
 import TopBar from "../components/TopBar";
 import UserAvatar from "../components/UserAvatar";
 import CopyFileLinkButton from "../components/CopyFileLinkButton";
+import { useQueryClient } from "@tanstack/react-query";
 
 // Folder component with context menu
 const FolderItem = ({ folder, selectedProject, navigate, level = 0 }) => {
@@ -62,6 +63,7 @@ const FolderItem = ({ folder, selectedProject, navigate, level = 0 }) => {
   const createProject = useCreateProject();
   const createFolder = useCreateFolder();
   const updateFolder = useUpdateFolder();
+  const queryClient = useQueryClient();
 
   const hasChildren =
     (folder.children && folder.children.length > 0) ||
@@ -88,8 +90,10 @@ const FolderItem = ({ folder, selectedProject, navigate, level = 0 }) => {
         onSuccess: () => {
           setCreateProjectDialog(false);
           setExpanded(true); // Expand to show the new project
+          // Force refetch the folder hierarchy to ensure immediate update
+          queryClient.invalidateQueries(["folderHierarchy"]);
         },
-      },
+      }
     );
   };
 
@@ -105,7 +109,7 @@ const FolderItem = ({ folder, selectedProject, navigate, level = 0 }) => {
           setCreateSubfolderDialog(false);
           setExpanded(true); // Expand to show the new subfolder
         },
-      },
+      }
     );
   };
 
@@ -120,7 +124,7 @@ const FolderItem = ({ folder, selectedProject, navigate, level = 0 }) => {
         onSuccess: () => {
           setEditFolderDialog(false);
         },
-      },
+      }
     );
   };
 
@@ -366,7 +370,7 @@ const Sidebar = () => {
   // Get projects shared with the user (not in folders)
   const sharedWithMe = projects.filter(
     (project) =>
-      project.authorId !== userId && project.reviewers.includes(userId),
+      project.authorId !== userId && project.reviewers.includes(userId)
   );
 
   const handleCreateRootFolder = (e) => {
@@ -380,7 +384,7 @@ const Sidebar = () => {
         onSuccess: () => {
           setRootFolderDialogOpen(false);
         },
-      },
+      }
     );
   };
 
@@ -494,7 +498,7 @@ const UploadFileButton = ({ projectId }) => {
           setDeadlineDate("");
           setDeadlineTime("12:00");
         },
-      },
+      }
     );
   };
 
@@ -592,7 +596,7 @@ const InviteReviewerButton = ({ projectId }) => {
           handleClose();
           e.target.reset();
         },
-      },
+      }
     );
   };
 
